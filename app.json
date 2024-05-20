@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "apex-previos",
+    "name": "Apex Previos",
     "slug": "apex-previos",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,6 +11,18 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "plugins": [
+      ["expo-image-picker",
+        {
+          "photosPermission": "La aplicación accede a tus fotos para permitirte guardarlas en los registros"
+        }],
+        ["expo-media-library",
+        {
+          "photosPermission": "Permitir $(PRODUCT_NAME) tener acceso a tus fotos.",
+          "savePhotosPermission": "Permitir $(PRODUCT_NAME) guardar en tu galería.",
+          "isAccessMediaLocationEnabled": true
+        }]
+    ],
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -25,6 +37,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "54f7e0c0-51ad-4688-a540-c4845d81f64a"
+      }
+    },
+    "owner": "cristianmdz"
   }
 }
