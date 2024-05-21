@@ -7,11 +7,7 @@ import Select from '../components/Select';
 import { Image } from 'expo-image';
 import NetInfo from '@react-native-community/netinfo';
 import { useFocusEffect } from '@react-navigation/native';
-<<<<<<< HEAD
-import { Util_apiServices } from '../utils/Util_apiServices';
-=======
 import { Util_apiForm, Util_apiServices } from '../utils/Util_apiServices';
->>>>>>> 2c45123986d6c38ec144ff3503640466db85306c
 import { useRoute } from "@react-navigation/native";
 
 import { Util_dateFormat } from '../utils/Util_dateFormat'
@@ -99,11 +95,7 @@ export default function DetallesPrevio({ navigation }) {
                 //Volver a abrir la camara
                 abrirCamara();
             }
-<<<<<<< HEAD
-
-=======
             contarImagenes();
->>>>>>> 2c45123986d6c38ec144ff3503640466db85306c
         } catch (error) {
             console.log('Error al tomar la foto:', error);
         }
@@ -218,8 +210,6 @@ export default function DetallesPrevio({ navigation }) {
         console.log(ok)
     }
 
-<<<<<<< HEAD
-=======
     const subirFotos = async () => {
         try {
             if(imagenes_no_subidas.length === 0){
@@ -282,7 +272,6 @@ export default function DetallesPrevio({ navigation }) {
         }    
     }
 
->>>>>>> 2c45123986d6c38ec144ff3503640466db85306c
     useFocusEffect(
         useCallback(() => {
             obtenerDatos();
@@ -499,16 +488,6 @@ export default function DetallesPrevio({ navigation }) {
                                     </View>
                                 </View>
 
-<<<<<<< HEAD
-                                <View>
-                                    <Text style={{ fontWeight: 'bold' }}>Modelo</Text>
-                                    <Select
-                                        data={arrayModelos}
-                                        value={arrayModelos.find(val => val.value === formModelo?.value)}
-                                        onChange={setFormModelo}
-                                    ></Select>
-                                </View>
-=======
                                 <Text style={{ fontWeight: 'bold' }}>Modelo</Text>
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                     <View style={{ width: '100%' }}>
@@ -533,7 +512,6 @@ export default function DetallesPrevio({ navigation }) {
                                     </View>
                                 </View>
                                 
->>>>>>> 2c45123986d6c38ec144ff3503640466db85306c
 
                             </View>
                         </View>
