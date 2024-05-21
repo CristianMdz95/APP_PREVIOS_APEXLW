@@ -7,11 +7,7 @@ import Select from '../components/Select';
 import { Image } from 'expo-image';
 import NetInfo from '@react-native-community/netinfo';
 import { useFocusEffect } from '@react-navigation/native';
-<<<<<<< HEAD
-import { Util_apiServices } from '../utils/Util_apiServices';
-=======
 import { Util_apiForm, Util_apiServices } from '../utils/Util_apiServices';
->>>>>>> 2c45123986d6c38ec144ff3503640466db85306c
 import { useRoute } from "@react-navigation/native";
 
 import { Util_dateFormat } from '../utils/Util_dateFormat'
@@ -99,11 +95,7 @@ export default function DetallesPrevio({ navigation }) {
                 //Volver a abrir la camara
                 abrirCamara();
             }
-<<<<<<< HEAD
-
-=======
             contarImagenes();
->>>>>>> 2c45123986d6c38ec144ff3503640466db85306c
         } catch (error) {
             console.log('Error al tomar la foto:', error);
         }
@@ -218,11 +210,9 @@ export default function DetallesPrevio({ navigation }) {
         console.log(ok)
     }
 
-<<<<<<< HEAD
-=======
     const subirFotos = async () => {
         try {
-            if(imagenes_no_subidas.length === 0){
+            if (imagenes_no_subidas.length === 0) {
                 alert("No se encontraron archivos.");
                 return false;
             }
@@ -233,23 +223,23 @@ export default function DetallesPrevio({ navigation }) {
                 i_imagenes_pdf: 0
             });
 
-            if(digi?.data){
-                for(let img of digi.data){
+            if (digi?.data) {
+                for (let img of digi.data) {
                     await FileSystem.moveAsync({
                         from: `${FileSystem.documentDirectory}${sk_previo}/imagenes_no_subidas/${img.s_nombre_original}`,
                         to: `${FileSystem.documentDirectory}${sk_previo}/imagenes_subidas/${img.s_nombre_original}`,
                     });
                 }
             }
-            contarImagenes(); 
+            contarImagenes();
             console.log(imagenes_subidas);
-            
+
         } catch (error) {
-            console.log("error:,",error);
+            console.log("error:,", error);
         }
     }
 
-    const api_procesarArchivosDigitalizacion = async (sk_codigo, files, datos)  => {
+    const api_procesarArchivosDigitalizacion = async (sk_codigo, files, datos) => {
         try {
             const formFile = new FormData();
             const sYear = new Date().getFullYear();
@@ -262,7 +252,7 @@ export default function DetallesPrevio({ navigation }) {
             formFile.append("sYear", sYear);
             formFile.append("sMes", sMes);
             formFile.append("location", `expedientes/${datos.s_clave_expediente}/${sYear}/${sMes}/${sk_codigo}/`);
-            
+
             let i = 0;
             for (const file of files) {
                 const filename = file.uri.split('/').pop();
@@ -273,16 +263,15 @@ export default function DetallesPrevio({ navigation }) {
                     name: filename,
                     type: `image/${fileType}`,
                 });
-                
-            } 
-            
+
+            }
+
             const rutas = await Util_apiForm('/api/digitalizacion_app', 'POST', formFile);
             return await rutas.json();
         } catch (error) {
-        }    
+        }
     }
 
->>>>>>> 2c45123986d6c38ec144ff3503640466db85306c
     useFocusEffect(
         useCallback(() => {
             obtenerDatos();
@@ -499,16 +488,6 @@ export default function DetallesPrevio({ navigation }) {
                                     </View>
                                 </View>
 
-<<<<<<< HEAD
-                                <View>
-                                    <Text style={{ fontWeight: 'bold' }}>Modelo</Text>
-                                    <Select
-                                        data={arrayModelos}
-                                        value={arrayModelos.find(val => val.value === formModelo?.value)}
-                                        onChange={setFormModelo}
-                                    ></Select>
-                                </View>
-=======
                                 <Text style={{ fontWeight: 'bold' }}>Modelo</Text>
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                     <View style={{ width: '100%' }}>
@@ -523,17 +502,16 @@ export default function DetallesPrevio({ navigation }) {
                                     <View style={{ alignItems: 'center' }}>
                                         <IconButton
                                             style={{ borderRadius: 10 }}
-                                            iconColor= 'green'
+                                            iconColor='green'
                                             mode='outlined'
                                             icon="cloud-upload"
                                             size={34}
                                             onPress={subirFotos}
-                                            disabled={ imagenes_no_subidas?.length === 0 ? true : false}
+                                            disabled={imagenes_no_subidas?.length === 0 ? true : false}
                                         />
                                     </View>
                                 </View>
-                                
->>>>>>> 2c45123986d6c38ec144ff3503640466db85306c
+
 
                             </View>
                         </View>
