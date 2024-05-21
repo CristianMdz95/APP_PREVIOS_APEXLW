@@ -126,9 +126,15 @@ export default function Test() {
         try {
             const noSubidasFolderName = 'imagenes_no_subidas';
             const noSubidasFolderUri = FileSystem.documentDirectory + noSubidasFolderName;
+<<<<<<< HEAD
 
             const noSubidasFiles = await FileSystem.readDirectoryAsync(noSubidasFolderUri);
 
+=======
+            
+            const noSubidasFiles = await FileSystem.readDirectoryAsync(noSubidasFolderUri);
+            console.log(noSubidasFiles);return false;
+>>>>>>> 2c45123986d6c38ec144ff3503640466db85306c
             for (const filename of noSubidasFiles) {
                 const imageUri = `${noSubidasFolderUri}/${filename}`;
                 const uploaded = await processAndUploadImage(imageUri);
