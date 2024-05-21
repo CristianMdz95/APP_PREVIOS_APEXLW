@@ -60,14 +60,15 @@ export default function DetallesPrevio({ navigation }) {
 
     const [previo, setPrevio] = useState(null)
     const [formContenedor, setFormContenero] = useState(null)
-    const [formModelo, setFormModelo] = useState(null)
+    const [selectModelo, setSelectModelo] = useState(null)
+    const [subirImagenes, setSubirImagenes] = useState(false)
 
     const [contenedor, setContenedor] = useState([])
 
     /* **************************** */
 
     useEffect(() => {
-        contarImagenes();
+        mostrarImagenes();
     }, []);
 
     const abrirCamara = async () => {
@@ -90,12 +91,11 @@ export default function DetallesPrevio({ navigation }) {
                 await crearCarpetaFotos(result.assets[0].uri);
 
                 /* Ir por las fotos y meterlas al stado */
-                contarImagenes();
+                mostrarImagenes();
 
                 //Volver a abrir la camara
                 abrirCamara();
             }
-            contarImagenes();
         } catch (error) {
             console.log('Error al tomar la foto:', error);
         }
@@ -122,7 +122,7 @@ export default function DetallesPrevio({ navigation }) {
             const subidasFolderName = 'imagenes_subidas';
             const noSubidasFolderName = 'imagenes_no_subidas';
 
-            const urlLocal = FileSystem.documentDirectory + previo?.sk_previo + '/'
+            const urlLocal = FileSystem.documentDirectory + sk_previo + '/'
             const subidasFolderUri = urlLocal + subidasFolderName;
             const noSubidasFolderUri = urlLocal + noSubidasFolderName;
 
@@ -136,11 +136,11 @@ export default function DetallesPrevio({ navigation }) {
             // Mover la imagen a la carpeta correspondiente
 
             //validacion en caso de que no tengamos internet
-            const folderToMove = await validarSubirImagen() ? subidasFolderUri : noSubidasFolderUri;
+            //const folderToMove = await validarSubirImagen() ? subidasFolderUri : noSubidasFolderUri;
 
             await FileSystem.moveAsync({
                 from: imageUri,
-                to: folderToMove + '/' + nombreImagen,
+                to: noSubidasFolderUri + '/' + nombreImagen,
             });
 
         } catch (error) {
@@ -159,13 +159,13 @@ export default function DetallesPrevio({ navigation }) {
         }
     };
 
-    const contarImagenes = async () => {
+    const mostrarImagenes = async () => {
         try {
 
             const subidasFolderName = 'imagenes_subidas';
             const noSubidasFolderName = 'imagenes_no_subidas';
 
-            const urlLocal = FileSystem.documentDirectory + previo?.sk_previo + '/'
+            const urlLocal = FileSystem.documentDirectory + sk_previo + '/';
 
             const subidasFolderUri = urlLocal + subidasFolderName;
             const noSubidasFolderUri = urlLocal + noSubidasFolderName;
@@ -173,7 +173,6 @@ export default function DetallesPrevio({ navigation }) {
             /* Leer el directorio local de tu telefono */
             const subidasFiles = await FileSystem.readDirectoryAsync(subidasFolderUri);
             const noSubidasFiles = await FileSystem.readDirectoryAsync(noSubidasFolderUri);
-
 
             /* Eliminar las fotos */
             /*             for (const filename of subidasFolderUri) {
@@ -191,7 +190,12 @@ export default function DetallesPrevio({ navigation }) {
 
             /* Agregar las imagenes al estado */
             set_imagenes_subidas(subidasFiles.reverse().map(filename => ({ uri: `${subidasFolderUri}/${filename}` })));
-            set_imagenes_no_subidas(noSubidasFiles.reverse().map(filename => ({ uri: `${noSubidasFolderUri}/${filename}` })));
+
+            set_imagenes_no_subidas(noSubidasFiles.reverse().map(filename => (
+                {
+                    uri: `${noSubidasFolderUri}/${filename}`
+                }
+            )));
 
         } catch (error) {
             console.log('Error al contar las imágenes:', error);
@@ -206,12 +210,14 @@ export default function DetallesPrevio({ navigation }) {
             label: contendor.s_numero_contenedor,
             value: contendor.s_numero_contenedor
         }))
+        console.log('cargar imagenes')
+        mostrarImagenes();
 
-        console.log(ok)
     }
 
     const subirFotos = async () => {
         try {
+            setSubirImagenes(true);
             if (imagenes_no_subidas.length === 0) {
                 alert("No se encontraron archivos.");
                 return false;
@@ -231,10 +237,11 @@ export default function DetallesPrevio({ navigation }) {
                     });
                 }
             }
-            contarImagenes();
-            console.log(imagenes_subidas);
+            mostrarImagenes();
+            setSubirImagenes(false);
 
         } catch (error) {
+            setSubirImagenes(false);
             console.log("error:,", error);
         }
     }
@@ -266,22 +273,36 @@ export default function DetallesPrevio({ navigation }) {
 
             }
 
-            const rutas = await Util_apiForm('/api/digitalizacion_app', 'POST', formFile);
+            const rutas = await Util_apiForm('/api/digitalizacion', 'POST', formFile);
             return await rutas.json();
         } catch (error) {
         }
     }
 
+    const eliminarFoto = async (ruta) => {
+
+    }
     useFocusEffect(
         useCallback(() => {
             obtenerDatos();
         }, [])
     );
-
+console.log(imagenes_no_subidas)
     return (
         <>
             <View>
-                <View style={{ height: '20%', backgroundColor: 'gray' }}></View>
+                <View style={{ height: '20%', backgroundColor: 'gray' }}>
+                    <Image
+                        source={imagenes_no_subidas?.[0]
+                            ? imagenes_no_subidas[0]
+                            : (imagenes_subidas?.[0]
+                                ? imagenes_subidas?.[0]
+                                : '')}
+                        style={{ borderRadius: 5, width: '100%', height: '100%' }}
+                        contentFit="cover"
+                        transition={1000}
+                    />
+                </View>
                 <ScrollView style={{ paddingHorizontal: 15, marginBottom: 15, marginTop: -50, height: '85%' }}>
                     <Card>
                         <Card.Content>
@@ -314,7 +335,10 @@ export default function DetallesPrevio({ navigation }) {
                                 </View>
                             </View>
 
-                            <TouchableOpacity onPress={() => bottomSheetRef.current?.expand()} style={{ height: 40, width: 40, position: 'absolute', top: 3, right: 6, marginTop: 0 }}>
+                            <TouchableOpacity onPress={() => {
+                                //mostrarImagenes();
+                                bottomSheetRef.current?.expand()
+                            }} style={{ height: 40, width: 40, position: 'absolute', top: 3, right: 6, marginTop: 0 }}>
                                 <Avatar.Icon style={{ borderRadius: 10 }} color='white' size={44} icon="camera" />
                             </TouchableOpacity>
 
@@ -322,11 +346,12 @@ export default function DetallesPrevio({ navigation }) {
                         </Card.Content>
                     </Card>
 
-                    <View style={{ marginTop: 15, flexDirection: 'row', gap: 5 }}>
+                    <ScrollView style={{ marginTop: 15, flexDirection: 'row' }} horizontal>
                         <Chip mode='outlined' onPress={() => console.log('Pressed')}>Modelos</Chip>
-                        <Chip mode='outlined' onPress={() => console.log('Pressed')}>Comentarios</Chip>
-                        <Chip mode='outlined' onPress={() => navigation.navigate('Prueba')}>Sellos Finales</Chip>
-                    </View>
+                        <Chip style={{ marginLeft: 6 }} mode='outlined' onPress={() => console.log('Pressed')}>Comentarios</Chip>
+                        <Chip style={{ marginLeft: 6 }} mode='outlined' onPress={() => navigation.navigate('Prueba')}>Sellos Finales</Chip>
+                    </ScrollView>
+
 
                     <Card style={{ width: '100%', marginTop: 15 }}>
                         <Card.Content>
@@ -493,8 +518,8 @@ export default function DetallesPrevio({ navigation }) {
                                     <View style={{ width: '100%' }}>
                                         <Select
                                             data={arrayModelos}
-                                            value={arrayModelos.find(val => val.value === formModelo?.value)}
-                                            onChange={setFormModelo}
+                                            value={arrayModelos.find(val => val.value === selectModelo?.value)}
+                                            onChange={setSelectModelo}
                                         ></Select>
                                     </View>
 
@@ -506,6 +531,7 @@ export default function DetallesPrevio({ navigation }) {
                                             mode='outlined'
                                             icon="cloud-upload"
                                             size={34}
+                                            loading={subirImagenes}
                                             onPress={subirFotos}
                                             disabled={imagenes_no_subidas?.length === 0 ? true : false}
                                         />
@@ -566,6 +592,7 @@ export default function DetallesPrevio({ navigation }) {
                                                             setUriImg(imagen)
                                                             setModalVisible(true)
                                                         }}>
+                                                            <Text>{imagen.s_modelo}</Text>
                                                             <Image
                                                                 source={imagen}
                                                                 style={{ borderRadius: 5, width: 88, height: 80 }}
@@ -605,6 +632,7 @@ export default function DetallesPrevio({ navigation }) {
                     </Dialog.Content>
 
                     <Dialog.Actions>
+                        <Button onPress={() => eliminarFoto()}>Eliminar</Button>
                         <Button onPress={() => setModalVisible(false)}>Cerrar</Button>
                     </Dialog.Actions>
                 </Dialog>

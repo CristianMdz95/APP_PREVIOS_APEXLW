@@ -1,11 +1,7 @@
 
 
 //const host = 'http://192.168.1.75:3001'
-<<<<<<< HEAD
 const host = 'http://192.168.100.11:3001'
-=======
-const host = 'http://192.168.100.10:3001'
->>>>>>> 2c45123986d6c38ec144ff3503640466db85306c
 //const host = 'https://apexlw.woodward.mx'
 
 import useStorage from '../utils/Util_localStorage'
@@ -48,25 +44,18 @@ const Util_apiServices = async (endpoint, type, data = undefined) => {
 }
 
 const Util_apiForm = async (endpoint, type, dataForm = null) => {
-<<<<<<< HEAD
-=======
     const { Set, Get, Remove } = useStorage()
 
     /* Obtener el token */
     let storageUsuario = JSON.parse(await Get('usuario') || null);
 
->>>>>>> 2c45123986d6c38ec144ff3503640466db85306c
     if (type === 'POST') {
         const res = await fetch(host + endpoint, {
             method: 'POST',
             body: dataForm,
             headers: {
-<<<<<<< HEAD
-                'content-type': 'multipart/form-data',
-=======
                 'content-type': 'multipart/form-data', 
                 'Authorization': `Bearer ${storageUsuario?.sk_token}`
->>>>>>> 2c45123986d6c38ec144ff3503640466db85306c
             },
         });
         return res
