@@ -14,13 +14,14 @@ import DetallesPrevio from './screens/DetallesPrevio'
 
 
 import Test from './screens/Test'
+import { Text } from 'react-native'
 
 const Stack = createNativeStackNavigator();
 
 function StackUsuario({ color }) {
 
     const { Set, Get, Remove } = useStorage()
-    const [ruta_inicial, set_ruta_inicial] = useState('Login');
+    const [ruta_inicial, set_ruta_inicial] = useState('login');
     const [cargando, set_cargando] = useState(false);
     const [nombreConsulta, set_nombreConsulta] = useState('');
 

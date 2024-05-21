@@ -1,7 +1,7 @@
 
 
 //const host = 'http://192.168.1.75:3001'
-const host = 'http://192.168.100.10:3001'
+const host = 'http://192.168.100.14:3001'
 //const host = 'https://apexlw.woodward.mx'
 
 import useStorage from '../utils/Util_localStorage'

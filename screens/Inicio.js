@@ -1,10 +1,10 @@
 import React, { useCallback, useState } from 'react'
-import { View, ScrollView, TouchableOpacity, Image, RefreshControl } from 'react-native'
+import { View, ScrollView, TouchableOpacity, Image, RefreshControl, StatusBar } from 'react-native'
 import { Divider, Card, Text } from 'react-native-paper';
 import useStorage from '../utils/Util_localStorage'
 import { useFocusEffect } from '@react-navigation/native';
 import { Util_apiServices } from '../utils/Util_apiServices';
-
+import ColorPrimary from '../data/ColorPrimary';
 
 const previos2 = [
     {
@@ -44,8 +44,8 @@ export default function Inicio({ navigation }) {
     const [cargandoPrevios, setCargandoPrevios] = useState(false)
     const [previos, setPrevios] = useState([]);
 
-    const cargarSucursales = async (sk_previo) => {
-        navigation.navigate('Detalles', { sk_previo })
+    const cargarDetalles = async (sk_previo, sk_estatus_reconocedor) => {
+        navigation.navigate('Detalles', { sk_previo, sk_estatus_reconocedor })
     }
 
     const obtenerDatos = async () => {
@@ -53,9 +53,10 @@ export default function Inicio({ navigation }) {
         console.log(result.data)
         setPrevios(result.data)
     }
-
+    
     useFocusEffect(
         useCallback(() => {
+            StatusBar.setBackgroundColor(ColorPrimary.color);
             obtenerDatos();
         }, [])
     );
@@ -74,7 +75,7 @@ export default function Inicio({ navigation }) {
                         return (
                             <Card key={sk_previo} style={{ marginBottom: 10, backgroundColor: 'white' }}>
                                 <Card.Content>
-                                    <TouchableOpacity key={index} onPress={() => cargarSucursales(previo?.sk_previo)}>
+                                    <TouchableOpacity key={index} onPress={() => cargarDetalles(previo?.sk_previo, previo?.sk_estatus_reconocedor)}>
                                         <View style={{ flexDirection: 'column' }}>
                                             <Text style={{ color: 'red', fontWeight: 'bold' }} variant="titleLarge">{previo?.i_folio}</Text>
                                             <Text variant="bodyLarge" numberOfLines={1}>{previo?.s_nombre_cliente}</Text>
