@@ -1,168 +1,155 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from "react";
 
-import { NavigationContainer } from '@react-navigation/native'
-import { createNativeStackNavigator } from "@react-navigation/native-stack"
-import useStorage from './utils/Util_localStorage'
-
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import useStorage from "./utils/Util_localStorage";
 
 //Screens
-import Login from './screens/Login'
-import Empresas from './screens/Empresas'
-import Sucursales from './screens/Sucursales'
-import Inicio from './screens/Inicio'
-import DetallesPrevio from './screens/DetallesPrevio'
+import Login from "./screens/Login";
+import Empresas from "./screens/Empresas";
+import Sucursales from "./screens/Sucursales";
+import Inicio from "./screens/Inicio";
+import DetallesPrevio from "./screens/DetallesPrevio";
 
+import colorPrimary from "./data/ColorPrimary";
 
-import Test from './screens/Test'
-import { Text } from 'react-native'
+import Test from "./screens/Test";
+import { Text } from "react-native";
 
 const Stack = createNativeStackNavigator();
 
 function StackUsuario({ color }) {
+  const { Set, Get, Remove } = useStorage();
+  const [ruta_inicial, set_ruta_inicial] = useState("Login");
+  const [cargando, set_cargando] = useState(false);
+  const [nombreConsulta, set_nombreConsulta] = useState("");
 
-    const { Set, Get, Remove } = useStorage()
-    const [ruta_inicial, set_ruta_inicial] = useState('login');
-    const [cargando, set_cargando] = useState(false);
-    const [nombreConsulta, set_nombreConsulta] = useState('');
+  useEffect(() => {
+    //obtener_storage()
+  }, []);
 
-    useEffect(() => {
-        //obtener_storage()
-    }, [])
-
-    const obtener_storage = async () => {
-        await Set('color', { color })
-        set_cargando(true)
-        const usuario = await Get('usuario')
-        if (usuario) {
-            const sk_empresa = JSON.parse(usuario)?.sk_empresa
-            const i_administrador = JSON.parse(usuario)?.i_administrador
-            const s_nombre_empresa = JSON.parse(usuario)?.s_nombre_empresa
-            if (i_administrador === 1 && sk_empresa === undefined) {
-                set_ruta_inicial('Administrador')
-            } else {
-                set_nombreConsulta(s_nombre_empresa)
-                set_ruta_inicial('UsuariosScreen')
-            }
-        } else {
-            set_ruta_inicial('Login')
-        }
-        set_cargando(false)
+  const obtener_storage = async () => {
+    await Set("color", { color });
+    set_cargando(true);
+    const usuario = await Get("usuario");
+    if (usuario) {
+      const sk_empresa = JSON.parse(usuario)?.sk_empresa;
+      const i_administrador = JSON.parse(usuario)?.i_administrador;
+      const s_nombre_empresa = JSON.parse(usuario)?.s_nombre_empresa;
+      if (i_administrador === 1 && sk_empresa === undefined) {
+        set_ruta_inicial("Administrador");
+      } else {
+        set_nombreConsulta(s_nombre_empresa);
+        set_ruta_inicial("UsuariosScreen");
+      }
+    } else {
+      set_ruta_inicial("Login");
     }
+    set_cargando(false);
+  };
 
-    return (
-        <>
-            {
-                !cargando &&
-                <Stack.Navigator
-                    initialRouteName={ruta_inicial}
-                >
+  return (
+    <>
+      {!cargando && (
+        <Stack.Navigator initialRouteName={ruta_inicial}>
+          {/* Login */}
+          <Stack.Screen
+            name="Login"
+            component={Login}
+            options={{
+              headerShown: true,
+              headerStyle: {
+                backgroundColor: colorPrimary.color, // Aquí puedes poner el color que desees
+              },
+              headerTintColor: "white",
+              headerTitleAlign: "center",
+              headerTitle: "",
+            }}
+          />
 
-                    {/* Login */}
-                    <Stack.Screen
-                        name='Login'
-                        component={Login}
+          {/* Empresas */}
+          <Stack.Screen
+            name="Empresas"
+            component={Empresas}
+            options={{
+              headerShown: true,
+              headerStyle: {
+                backgroundColor: colorPrimary.color, // Aquí puedes poner el color que desees
+              },
+              headerTintColor: "white",
+              headerTitleAlign: "center",
+              headerTitle: "Empresas",
+            }}
+          />
 
-                        options={{
-                            headerShown: true,
-                            headerStyle: {
-                                backgroundColor: colorPrimary.color, // Aquí puedes poner el color que desees
-                            },
-                            headerTintColor: 'white',
-                            headerTitleAlign: 'center',
-                            headerTitle: '',
-                        }}
-                    />
+          {/* Sucursales */}
+          <Stack.Screen
+            name="Sucursales"
+            component={Sucursales}
+            options={{
+              headerShown: true,
+              headerStyle: {
+                backgroundColor: colorPrimary.color, // Aquí puedes poner el color que desees
+              },
+              headerTintColor: "white",
+              headerTitleAlign: "center",
+              headerTitle: "Sucursales",
+            }}
+          />
 
-                    {/* Empresas */}
-                    <Stack.Screen
-                        name='Empresas'
-                        component={Empresas}
+          {/* INICIO */}
+          <Stack.Screen
+            name="Inicio"
+            component={Inicio}
+            options={{
+              headerShown: true,
+              headerStyle: {
+                backgroundColor: colorPrimary.color, // Aquí puedes poner el color que desees
+              },
+              headerTintColor: "white",
+              headerTitleAlign: "center",
+              headerTitle: "Previos",
+            }}
+          />
 
-                        options={{
-                            headerShown: true,
-                            headerStyle: {
-                                backgroundColor: colorPrimary.color, // Aquí puedes poner el color que desees
-                            },
-                            headerTintColor: 'white',
-                            headerTitleAlign: 'center',
-                            headerTitle: 'Empresas',
-                        }}
-                    />
+          {/* DETALLES DEL PREVIO */}
+          <Stack.Screen
+            name="Detalles"
+            component={DetallesPrevio}
+            options={{
+              headerShown: true,
+              headerStyle: {
+                backgroundColor: colorPrimary.color, // Aquí puedes poner el color que desees
+              },
+              headerTintColor: "white",
+              headerTitleAlign: "center",
+              headerTitle: "Detalles",
+            }}
+          />
 
-                    {/* Sucursales */}
-                    <Stack.Screen
-                        name='Sucursales'
-                        component={Sucursales}
-
-                        options={{
-                            headerShown: true,
-                            headerStyle: {
-                                backgroundColor: colorPrimary.color, // Aquí puedes poner el color que desees
-                            },
-                            headerTintColor: 'white',
-                            headerTitleAlign: 'center',
-                            headerTitle: 'Sucursales',
-                        }}
-                    />
-
-                    {/* INICIO */}
-                    <Stack.Screen
-                        name='Inicio'
-                        component={Inicio}
-
-                        options={{
-                            headerShown: true,
-                            headerStyle: {
-                                backgroundColor: colorPrimary.color, // Aquí puedes poner el color que desees
-                            },
-                            headerTintColor: 'white',
-                            headerTitleAlign: 'center',
-                            headerTitle: 'Previos',
-                        }}
-                    />
-
-                    {/* DETALLES DEL PREVIO */}
-                    <Stack.Screen
-                        name='Detalles'
-                        component={DetallesPrevio}
-
-                        options={{
-                            headerShown: true,
-                            headerStyle: {
-                                backgroundColor: colorPrimary.color, // Aquí puedes poner el color que desees
-                            },
-                            headerTintColor: 'white',
-                            headerTitleAlign: 'center',
-                            headerTitle: 'Detalles',
-                        }}
-                    />
-
-                    {/* PRUEBA */}
-                    <Stack.Screen
-                        name='Prueba'
-                        component={Test}
-
-                        options={{
-                            headerStyle: {
-                                backgroundColor: colorPrimary.color, // Aquí puedes poner el color que desees
-                            },
-                            headerTintColor: 'white',
-                            headerTitleAlign: 'center',
-                            headerTitle: 'asdasd',
-                        }}
-                    />
-
-                </Stack.Navigator>
-            }
-        </>
-
-    )
+          {/* PRUEBA */}
+          <Stack.Screen
+            name="Prueba"
+            component={Test}
+            options={{
+              headerStyle: {
+                backgroundColor: colorPrimary.color, // Aquí puedes poner el color que desees
+              },
+              headerTintColor: "white",
+              headerTitleAlign: "center",
+              headerTitle: "Módulo Prueba",
+            }}
+          />
+        </Stack.Navigator>
+      )}
+    </>
+  );
 }
 
 export default function Navigation({ color }) {
-    return (
-        <NavigationContainer>
-            <StackUsuario color={color}></StackUsuario>
-        </NavigationContainer>
-    )
+  return (
+    <NavigationContainer>
+      <StackUsuario color={color}></StackUsuario>
+    </NavigationContainer>
+  );
 }
