@@ -6,8 +6,9 @@ import {
   Image,
   RefreshControl,
   StatusBar,
+  Text,
 } from "react-native";
-import { Divider, Card, Text } from "react-native-paper";
+import { Divider, Card, Portal, FAB } from "react-native-paper";
 import useStorage from "../utils/Util_localStorage";
 import { useFocusEffect } from "@react-navigation/native";
 import { Util_apiServices } from "../utils/Util_apiServices";
@@ -50,6 +51,8 @@ export default function Inicio({ navigation }) {
   const { Set, Get, Remove } = useStorage();
   const [cargandoPrevios, setCargandoPrevios] = useState(false);
   const [previos, setPrevios] = useState([]);
+  const [menu, setMenu] = useState(false);
+  const [flotante, setFlotante] = useState(true);
 
   const cargarDetalles = async (sk_previo, sk_estatus_reconocedor) => {
     navigation.navigate("Detalles", { sk_previo, sk_estatus_reconocedor });
@@ -68,6 +71,7 @@ export default function Inicio({ navigation }) {
     useCallback(() => {
       StatusBar.setBackgroundColor(ColorPrimary.color);
       obtenerDatos();
+      setFlotante(true);
     }, []),
   );
 
@@ -91,12 +95,13 @@ export default function Inicio({ navigation }) {
                 <Card.Content>
                   <TouchableOpacity
                     key={index}
-                    onPress={() =>
+                    onPress={() => {
+                      setFlotante(false);
                       cargarDetalles(
                         previo?.sk_previo,
                         previo?.sk_estatus_reconocedor,
-                      )
-                    }
+                      );
+                    }}
                   >
                     <View style={{ flexDirection: "column" }}>
                       <Text
@@ -127,6 +132,34 @@ export default function Inicio({ navigation }) {
               </Card>
             );
           })}
+
+        <Portal>
+          <FAB.Group
+            color="white"
+            containerStyle={{ backgroundColor: "blue" }}
+            open={menu}
+            visible={flotante}
+            icon={menu ? "close" : "apps"}
+            actions={[
+              {
+                visible: true,
+                icon: "logout",
+                color: "red",
+                onPress: () => {
+                  alert("asdsadad");
+                  /*  salirAdministrador(); */
+                },
+              },
+            ]}
+            onStateChange={() => setMenu((prev) => !prev)}
+            onPress={() => {
+              if (menu) {
+                // callback al cerrar el menu
+                //setMenu(prev => !prev)
+              }
+            }}
+          />
+        </Portal>
       </ScrollView>
     </View>
   );
