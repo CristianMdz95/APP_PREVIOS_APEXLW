@@ -8,6 +8,7 @@ import {
   StatusBar,
   Alert,
   useWindowDimensions,
+  ActivityIndicator,
 } from "react-native";
 import {
   Text,
@@ -19,6 +20,8 @@ import {
   IconButton,
   Portal,
   Dialog,
+  RadioButton,
+  FAB,
 } from "react-native-paper";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { Image } from "expo-image";
@@ -37,23 +40,40 @@ import * as FileSystem from "expo-file-system/legacy";
 import colorPrimary from "../data/ColorPrimary";
 
 /* ===================== */
-const arrayModelos = [
-  { label: "Vacío", value: null },
-  { label: "Modelo 1", value: "MODELO1" },
-  { label: "Modelo 2", value: "MODELO2" },
+const arrayTipoFoto = [
+  { label: "Apertura", value: "APERTU" },
+  { label: "General", value: "GENERA" },
+  { label: "Cierre", value: "CIERRE" },
+];
+
+const arrayTipoDano = [
+  { label: "Abollado", value: "ABOLLAD" },
+  { label: "Golpeado", value: "GOLPEAD" },
 ];
 
 export default function DetallesPrevio({ navigation }) {
-  const bottomSheetRef = useRef(null);
+  const drawerFotografia = useRef(null);
+
   const route = useRoute();
   const { sk_previo, sk_estatus_reconocedor } = route.params;
 
+  const [formulario_foto, set_formulario_foto] = useState({
+    s_estado_mercancia: "sin_dano",
+  });
+
+  const [loading_cargar_datos, set_loading_cargar_datos] = useState(true);
+  const [menu, setMenu] = useState(false);
+  const [flotante, setFlotante] = useState(true);
   const [previo, setPrevio] = useState(null);
   const [contenedor, setContenedor] = useState([]);
   const [formContenedor, setFormContenero] = useState(null);
   const [selectModelo, setSelectModelo] = useState(null);
+  const [selectParte, setSelectParte] = useState(null);
+  const [selectDano, setSelectDano] = useState(null);
 
   const [TotalSubidas, setTotalSubidas] = useState(0);
+
+  const [estado_mercancia, set_estado_mercancia] = useState("opcion1");
 
   const [imagenes_subidas, set_imagenes_subidas] = useState([]);
   const [imagenes_no_subidas, set_imagenes_no_subidas] = useState([]);
@@ -68,11 +88,13 @@ export default function DetallesPrevio({ navigation }) {
   const layout = useWindowDimensions();
 
   const [index, setIndex] = React.useState(0);
+  const [texto_tab, set_texto_tab] = React.useState("reconocedores");
 
   const [routes] = React.useState([
     { key: "reconocedores", title: "Reconocedores" },
     { key: "contenedores", title: "Contenedores" },
     { key: "modelos", title: "Modelos" },
+    { key: "bl", title: "BL'S" },
     { key: "autoridades", title: "Autoridades" },
   ]);
 
@@ -88,6 +110,11 @@ export default function DetallesPrevio({ navigation }) {
       </View>
     ),
     modelos: () => (
+      <View style={{ padding: 20 }}>
+        <Text>Contenido de Modelos</Text>
+      </View>
+    ),
+    bl: () => (
       <View style={{ padding: 20 }}>
         <Text>Contenido de Modelos</Text>
       </View>
@@ -158,6 +185,9 @@ export default function DetallesPrevio({ navigation }) {
       });
 
       await mostrarImagenes();
+
+      //Volver a abrir la camara
+      abrirCamara();
     } catch (error) {
       console.log("Error cámara:", error);
     }
@@ -209,7 +239,7 @@ export default function DetallesPrevio({ navigation }) {
       );
 
       setTotalSubidas(subidasFiles.length);
-      setTotalNoSubidas(noSubidasFiles.length);
+      //setTotalNoSubidas(noSubidasFiles.length);
     } catch (error) {
       console.log("mostrarImagenes error:", error);
     }
@@ -330,356 +360,449 @@ export default function DetallesPrevio({ navigation }) {
   /* ===================== */
   useFocusEffect(
     useCallback(() => {
+      set_loading_cargar_datos(true);
       Util_apiServices(
         "/api/agen/traf/prev-apli/api-previos/obtenerPrevio",
         "POST",
         { sk_previo },
-      ).then((res) => setPrevio(res.data));
+      ).then((res) => {
+        setPrevio(res.data);
+        set_loading_cargar_datos(false);
+      });
     }, []),
   );
 
   /* ===================== */
+
+  useEffect(() => {
+    const tabActual = routes[index].key;
+    set_texto_tab(tabActual);
+  }, [index]);
+
+  const finalizarPrevio = async () => {
+    alert("asdasdj");
+  };
+
   return (
     <>
-      <View>
-        {sk_estatus_reconocedor === "FI" ? (
-          <View style={{ marginBottom: 65 }}></View>
-        ) : (
-          <View style={{ height: "20%", backgroundColor: "gray" }}>
-            <Image
-              source={
-                imagenes_no_subidas?.[0]
-                  ? imagenes_no_subidas[0]
-                  : imagenes_subidas?.[0]
-                    ? imagenes_subidas?.[0]
-                    : ""
-              }
-              style={{ borderRadius: 5, width: "100%", height: "100%" }}
-              contentFit="cover"
-              transition={1000}
-            />
-          </View>
-        )}
-
-        <ScrollView
+      {loading_cargar_datos ? (
+        <View
           style={{
-            paddingHorizontal: 15,
-            marginBottom: 15,
-            marginTop: -50,
-            height: sk_estatus_reconocedor === "FI" ? "100%" : "85%",
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
           }}
         >
-          <Card>
-            <Card.Content>
-              <Text
-                variant="titleLarge"
-                style={{ color: "red", paddingBottom: 10 }}
-              >
-                {previo?.i_folio}
-              </Text>
-              {previo?.sk_estatus_reconocedor === "FsI" ? (
-                <Text
-                  numberOfLines={1}
-                  style={{ color: "#22c55e", fontWeight: "bold" }}
-                  variant="bodyMedium"
-                >
-                  Finalizado
-                </Text>
-              ) : (
-                <Text
-                  numberOfLines={1}
-                  style={{ color: "#f59e0b", fontWeight: "bold" }}
-                  variant="bodyMedium"
-                >
-                  En Proceso
-                </Text>
-              )}
-
-              <Text numberOfLines={1} variant="bodyMedium">
-                {previo?.s_nombre_cliente}
-              </Text>
-              <Text numberOfLines={1} variant="bodyMedium">
-                {previo?.empresa_terminal}
-              </Text>
-              <Divider style={{ marginVertical: 5 }}></Divider>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  paddingHorizontal: 0,
-                }}
-              >
-                <View>
-                  <Text variant="bodyMedium" style={{ fontWeight: "bold" }}>
-                    Tipo de carga
-                  </Text>
-                  <Text variant="bodyMedium">{previo?.nombre_tipo_carga}</Text>
-                </View>
-
-                <View></View>
-
-                <View>
-                  <Text variant="bodyMedium" style={{ fontWeight: "bold" }}>
-                    Bultos
-                  </Text>
-                  <Text variant="bodyMedium" style={{ textAlign: "center" }}>
-                    {previo?.i_bultos}
-                  </Text>
-                </View>
-                <View>
-                  <Text variant="bodyMedium" style={{ fontWeight: "bold" }}>
-                    Peso
-                  </Text>
-                  <Text variant="bodyMedium" style={{ textAlign: "center" }}>
-                    {previo?.f_peso}
-                  </Text>
-                </View>
-              </View>
-
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  paddingHorizontal: 0,
-                }}
-              >
-                <View>
-                  <Text variant="bodyMedium" style={{ fontWeight: "bold" }}>
-                    Fecha y Hora Confirmación
-                  </Text>
-                  <Text variant="bodyMedium">
-                    {Util_dateFormat(previo?.d_fecha_confirmacion) +
-                      " - " +
-                      previo?.t_hora_confirmacion}
-                  </Text>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                disabled={sk_estatus_reconocedor === "FI" ? true : false}
-                onPress={() => {
-                  //mostrarImagenes();
-                  bottomSheetRef.current?.expand();
-                }}
-                style={{
-                  height: 40,
-                  width: 40,
-                  position: "absolute",
-                  top: 3,
-                  right: 6,
-                  marginTop: 0,
-                }}
-              >
-                <Avatar.Icon
-                  style={{
-                    borderRadius: 10,
-                    backgroundColor:
-                      sk_estatus_reconocedor === "FI"
-                        ? "lightgray"
-                        : ColorPrimary.color,
-                  }}
-                  color="white"
-                  size={44}
-                  icon="camera"
-                />
-              </TouchableOpacity>
-            </Card.Content>
-          </Card>
+          <ActivityIndicator size="large" color={ColorPrimary.color} />
+        </View>
+      ) : (
+        <View>
+          {sk_estatus_reconocedor === "FI" ? (
+            <View style={{ marginBottom: 65 }}></View>
+          ) : (
+            <View style={{ height: "20%", backgroundColor: "gray" }}>
+              <Image
+                source={
+                  imagenes_no_subidas?.[0]
+                    ? imagenes_no_subidas[0]
+                    : imagenes_subidas?.[0]
+                      ? imagenes_subidas?.[0]
+                      : ""
+                }
+                style={{ borderRadius: 5, width: "100%", height: "100%" }}
+                contentFit="cover"
+                transition={1000}
+              />
+            </View>
+          )}
 
           <ScrollView
-            style={{ marginTop: 15, flexDirection: "row", display: "none" }}
-            horizontal
+            style={{
+              paddingHorizontal: 15,
+              marginBottom: 15,
+              marginTop: -50,
+              height: sk_estatus_reconocedor === "FI" ? "100%" : "85%",
+            }}
           >
-            <Chip mode="outlined" onPress={() => console.log("Pressed")}>
-              Modelos
-            </Chip>
-            <Chip
-              style={{ marginLeft: 6 }}
-              mode="outlined"
-              onPress={() => console.log("Pressed")}
-            >
-              Comentarios
-            </Chip>
-            <Chip
-              style={{ marginLeft: 6 }}
-              mode="outlined"
-              onPress={() => navigation.navigate("Prueba")}
-            >
-              Sellos Finales
-            </Chip>
-          </ScrollView>
-
-          <Card style={{ width: "100%", marginTop: 15 }}>
-            <Card.Content>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text variant="bodyLarge" style={{ fontWeight: "bold" }}>
-                  Reconocedores
-                </Text>
-                <Text> ({previo?.reconocedores.length || 0})</Text>
-              </View>
-              <Divider style={{ marginVertical: 5 }}></Divider>
-              <View style={{ height: 60 }}>
-                <ScrollView>
-                  {previo?.reconocedores.map((reconocedores, index) => {
-                    return (
-                      <Text key={index}>
-                        {reconocedores?.nombre_reconocedor}
-                      </Text>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-            </Card.Content>
-          </Card>
-
-          {/* TABS */}
-          <Card style={{ flex: 1, backgroundColor: "red" }}>
-            <TabView
-              navigationState={{ index, routes }}
-              renderScene={renderScene}
-              onIndexChange={setIndex}
-              initialLayout={{ width: layout.width }}
-              renderTabBar={(props) => (
-                <TabBar
-                  {...props}
-                  scrollEnabled
-                  indicatorStyle={{ backgroundColor: colorPrimary.color }}
-                  style={{ backgroundColor: colorPrimary.secondary }}
-                  activeColor={colorPrimary.color}
-                  inactiveColor="#9CA3AF"
-                />
-              )}
-            />
-          </Card>
-
-          <View style={{ flexDirection: "row", gap: 13, marginTop: 15 }}>
-            <Card style={{ width: "48%" }}>
+            <Card>
               <Card.Content>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text variant="bodyLarge" style={{ fontWeight: "bold" }}>
-                    Contenedor
+                <Text
+                  variant="titleLarge"
+                  style={{ color: "red", paddingBottom: 10 }}
+                >
+                  {previo?.i_folio}
+                </Text>
+                {previo?.sk_estatus_reconocedor === "FsI" ? (
+                  <Text
+                    numberOfLines={1}
+                    style={{ color: "#22c55e", fontWeight: "bold" }}
+                    variant="bodyMedium"
+                  >
+                    Finalizado
                   </Text>
-                  <Text> ({previo?.contenedores.length || 0})</Text>
-                </View>
+                ) : (
+                  <Text
+                    numberOfLines={1}
+                    style={{ color: "#f59e0b", fontWeight: "bold" }}
+                    variant="bodyMedium"
+                  >
+                    En Proceso
+                  </Text>
+                )}
+
+                <Text numberOfLines={1} variant="bodyMedium">
+                  {previo?.s_nombre_cliente}
+                </Text>
+                <Text numberOfLines={1} variant="bodyMedium">
+                  {previo?.empresa_terminal}
+                </Text>
                 <Divider style={{ marginVertical: 5 }}></Divider>
-                <View style={{ height: 60 }}>
-                  <ScrollView>
-                    {previo?.contenedores.map((contenedor, index) => {
-                      return (
-                        <Text key={index}>
-                          {contenedor?.s_numero_contenedor}
-                        </Text>
-                      );
-                    })}
-                  </ScrollView>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    paddingHorizontal: 0,
+                  }}
+                >
+                  <View>
+                    <Text variant="bodyMedium" style={{ fontWeight: "bold" }}>
+                      Tipo de carga
+                    </Text>
+                    <Text variant="bodyMedium">
+                      {previo?.nombre_tipo_carga}
+                    </Text>
+                  </View>
+
+                  <View></View>
+
+                  <View>
+                    <Text variant="bodyMedium" style={{ fontWeight: "bold" }}>
+                      Bultos
+                    </Text>
+                    <Text variant="bodyMedium" style={{ textAlign: "center" }}>
+                      {previo?.i_bultos}
+                    </Text>
+                  </View>
+                  <View>
+                    <Text variant="bodyMedium" style={{ fontWeight: "bold" }}>
+                      Peso
+                    </Text>
+                    <Text variant="bodyMedium" style={{ textAlign: "center" }}>
+                      {previo?.f_peso}
+                    </Text>
+                  </View>
                 </View>
+
+                <View
+                  style={{
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    paddingHorizontal: 0,
+                  }}
+                >
+                  <View>
+                    <Text variant="bodyMedium" style={{ fontWeight: "bold" }}>
+                      Fecha Recepción
+                    </Text>
+                    <Text variant="bodyMedium">
+                      {Util_dateFormat(previo?.d_fecha_recepcion)}
+                    </Text>
+                  </View>
+
+                  <View>
+                    <Text variant="bodyMedium" style={{ fontWeight: "bold" }}>
+                      Fecha y Hora Confirmación
+                    </Text>
+                    <Text variant="bodyMedium">
+                      {Util_dateFormat(previo?.d_fecha_confirmacion) +
+                        " - " +
+                        previo?.t_hora_confirmacion}
+                    </Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  disabled={sk_estatus_reconocedor === "FI" ? true : false}
+                  onPress={() => {
+                    //mostrarImagenes();
+                    drawerFotografia.current?.expand();
+                  }}
+                  style={{
+                    height: 40,
+                    width: 40,
+                    position: "absolute",
+                    top: 3,
+                    right: 6,
+                    marginTop: 0,
+                  }}
+                >
+                  <Avatar.Icon
+                    style={{
+                      borderRadius: 10,
+                      backgroundColor:
+                        sk_estatus_reconocedor === "FI"
+                          ? "lightgray"
+                          : ColorPrimary.color,
+                    }}
+                    color="white"
+                    size={44}
+                    icon="camera"
+                  />
+                </TouchableOpacity>
               </Card.Content>
             </Card>
 
-            {!previo?.s_guias ? (
-              <Card style={{ width: "48%" }}>
+            <ScrollView
+              style={{ marginTop: 15, flexDirection: "row", display: "none" }}
+              horizontal
+            >
+              <Chip mode="outlined" onPress={() => console.log("Pressed")}>
+                Modelos
+              </Chip>
+              <Chip
+                style={{ marginLeft: 6 }}
+                mode="outlined"
+                onPress={() => console.log("Pressed")}
+              >
+                Comentarios
+              </Chip>
+              <Chip
+                style={{ marginLeft: 6 }}
+                mode="outlined"
+                onPress={() => navigation.navigate("Prueba")}
+              >
+                Sellos Finales
+              </Chip>
+            </ScrollView>
+
+            {/* TABS */}
+            <Card style={{ flex: 1, backgroundColor: "white", marginTop: 15 }}>
+              <TabView
+                style={{
+                  backgroundColor: "white",
+                  borderTopLeftRadius: 10,
+                  borderTopRightRadius: 10,
+                  elevation: 0, // Android
+                  shadowOpacity: 0, // iOS
+                }}
+                navigationState={{ index, routes }}
+                renderScene={renderScene}
+                onIndexChange={(val) => {
+                  setIndex(val);
+                }}
+                initialLayout={{ width: layout.width }}
+                renderTabBar={(props) => (
+                  <TabBar
+                    {...props}
+                    scrollEnabled
+                    indicatorStyle={{ backgroundColor: colorPrimary.color }}
+                    style={{
+                      backgroundColor: "white",
+                    }}
+                    activeColor={colorPrimary.color}
+                    inactiveColor="#9CA3AF"
+                  />
+                )}
+              />
+            </Card>
+
+            {texto_tab === "reconocedores" && (
+              <Card
+                style={{
+                  borderRadius: 0,
+                  borderBottomRightRadius: 10,
+                  borderBottomLeftRadius: 10,
+                }}
+              >
                 <Card.Content>
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <Text variant="bodyLarge" style={{ fontWeight: "bold" }}>
-                      BL'S
+                      Reconocedores
                     </Text>
-                    <Text> (3)</Text>
+                    <Text> ({previo?.reconocedores.length || 0})</Text>
                   </View>
                   <Divider style={{ marginVertical: 5 }}></Divider>
                   <View style={{ height: 60 }}>
                     <ScrollView>
-                      <Text>GUÍA-001</Text>
-                      <Text>GUÍA-002</Text>
-                      <Text>GUÍA-003</Text>
-                    </ScrollView>
-                  </View>
-                </Card.Content>
-              </Card>
-            ) : (
-              <Card style={{ width: "48%" }}>
-                <Card.Content>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text variant="bodyLarge" style={{ fontWeight: "bold" }}>
-                      Guías
-                    </Text>
-                  </View>
-                  <Divider style={{ marginVertical: 5 }}></Divider>
-                  <View style={{ height: 60 }}>
-                    <ScrollView>
-                      <Text>{previo?.s_guias}</Text>
+                      {previo?.reconocedores.map((reconocedores, index) => {
+                        return (
+                          <Text key={index}>
+                            {reconocedores?.nombre_reconocedor}
+                          </Text>
+                        );
+                      })}
                     </ScrollView>
                   </View>
                 </Card.Content>
               </Card>
             )}
-          </View>
 
-          <View style={{ flexDirection: "row", gap: 13, marginVertical: 15 }}>
-            <Card style={{ width: "48%" }}>
-              <Card.Content>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text variant="bodyLarge" style={{ fontWeight: "bold" }}>
-                    Modelos
-                  </Text>
-                  <Text> ({previo?.modelos.length})</Text>
-                </View>
-                <Divider style={{ marginVertical: 5 }}></Divider>
-                <View style={{ height: 60 }}>
-                  <ScrollView>
-                    {previo?.modelos.map((modelo, index) => {
-                      return <Text key={index}>{modelo?.s_modelo}</Text>;
-                    })}
-                  </ScrollView>
-                </View>
-              </Card.Content>
-            </Card>
-
-            <Card style={{ width: "48%" }}>
-              <Card.Content>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text variant="bodyLarge" style={{ fontWeight: "bold" }}>
-                    Autoridades
-                  </Text>
-                  <Text> ({previo?.autoridades.length})</Text>
-                </View>
-                <Divider style={{ marginVertical: 5 }}></Divider>
-                <View style={{ height: 60 }}>
-                  <ScrollView>
-                    {previo?.autoridades.map((autoridad, index) => {
-                      return (
-                        <Text key={index}>{autoridad?.nombre_autoridad}</Text>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-              </Card.Content>
-            </Card>
-          </View>
-          {sk_estatus_reconocedor === "FI" ? (
-            <></>
-          ) : (
-            <View style={{ marginTop: 0, marginBottom: 15 }}>
-              <TouchableOpacity
+            {texto_tab === "contenedores" && (
+              <Card
                 style={{
-                  padding: 10,
-                  backgroundColor: "#22c55e",
-                  borderRadius: 7,
-                  height: 60,
-                  alignItems: "center",
-                  justifyContent: "center",
+                  borderRadius: 0,
+                  borderBottomRightRadius: 10,
+                  borderBottomLeftRadius: 10,
                 }}
-                onPress={() => finalizarPrevio()}
               >
-                <Text style={{ color: "white", fontSize: 16 }}>
-                  Finalizar Previos
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </ScrollView>
-      </View>
+                <Card.Content>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text variant="bodyLarge" style={{ fontWeight: "bold" }}>
+                      Contenedor
+                    </Text>
+                    <Text> ({previo?.contenedores.length || 0})</Text>
+                  </View>
+                  <Divider style={{ marginVertical: 5 }}></Divider>
+                  <View style={{ height: 60 }}>
+                    <ScrollView>
+                      {previo?.contenedores.map((contenedor, index) => {
+                        return (
+                          <Text key={index}>
+                            {contenedor?.s_numero_contenedor}
+                          </Text>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                </Card.Content>
+              </Card>
+            )}
 
-      <BottomSheet ref={bottomSheetRef} index={0} snapPoints={[1, "95%"]}>
+            {texto_tab === "bl" &&
+              (!previo?.s_guias ? (
+                <Card
+                  style={{
+                    borderRadius: 0,
+                    borderBottomRightRadius: 10,
+                    borderBottomLeftRadius: 10,
+                  }}
+                >
+                  <Card.Content>
+                    <View
+                      style={{ flexDirection: "row", alignItems: "center" }}
+                    >
+                      <Text variant="bodyLarge" style={{ fontWeight: "bold" }}>
+                        BL'S
+                      </Text>
+                      <Text> (3)</Text>
+                    </View>
+                    <Divider style={{ marginVertical: 5 }}></Divider>
+                    <View style={{ height: 60 }}>
+                      <ScrollView>
+                        <Text>GUÍA-001</Text>
+                        <Text>GUÍA-002</Text>
+                        <Text>GUÍA-003</Text>
+                      </ScrollView>
+                    </View>
+                  </Card.Content>
+                </Card>
+              ) : (
+                <Card
+                  style={{
+                    borderRadius: 0,
+                    borderBottomRightRadius: 10,
+                    borderBottomLeftRadius: 10,
+                  }}
+                >
+                  <Card.Content>
+                    <View
+                      style={{ flexDirection: "row", alignItems: "center" }}
+                    >
+                      <Text variant="bodyLarge" style={{ fontWeight: "bold" }}>
+                        Guías
+                      </Text>
+                    </View>
+                    <Divider style={{ marginVertical: 5 }}></Divider>
+                    <View style={{ height: 60 }}>
+                      <ScrollView>
+                        <Text>{previo?.s_guias}</Text>
+                      </ScrollView>
+                    </View>
+                  </Card.Content>
+                </Card>
+              ))}
+
+            {texto_tab === "modelos" && (
+              <Card
+                style={{
+                  borderRadius: 0,
+                  borderBottomRightRadius: 10,
+                  borderBottomLeftRadius: 10,
+                }}
+              >
+                <Card.Content>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text variant="bodyLarge" style={{ fontWeight: "bold" }}>
+                      Modelos
+                    </Text>
+                    <Text> ({previo?.modelos.length})</Text>
+                  </View>
+                  <Divider style={{ marginVertical: 5 }}></Divider>
+                  <View style={{ height: 60 }}>
+                    <ScrollView>
+                      {previo?.modelos.map((modelo, index) => {
+                        return <Text key={index}>{modelo?.s_modelo}</Text>;
+                      })}
+                    </ScrollView>
+                  </View>
+                </Card.Content>
+              </Card>
+            )}
+
+            {texto_tab === "autoridades" && (
+              <Card
+                style={{
+                  borderRadius: 0,
+                  borderBottomRightRadius: 10,
+                  borderBottomLeftRadius: 10,
+                }}
+              >
+                <Card.Content>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text variant="bodyLarge" style={{ fontWeight: "bold" }}>
+                      Autoridades
+                    </Text>
+                    <Text> ({previo?.autoridades.length})</Text>
+                  </View>
+                  <Divider style={{ marginVertical: 5 }}></Divider>
+                  <View style={{ height: 60 }}>
+                    <ScrollView>
+                      {previo?.autoridades.map((autoridad, index) => {
+                        return (
+                          <Text key={index}>{autoridad?.nombre_autoridad}</Text>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                </Card.Content>
+              </Card>
+            )}
+
+            {sk_estatus_reconocedor === "FI" ? (
+              <></>
+            ) : (
+              <View style={{ marginTop: 15, marginBottom: 15 }}>
+                {/*                 <TouchableOpacity
+                  style={{
+                    backgroundColor: "#22c55e",
+                    borderRadius: 7,
+                    height: 30,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  onPress={() => finalizarPrevio()}
+                >
+                  <Text style={{ color: "white", fontSize: 16 }}>
+                    Finalizar Previos
+                  </Text>
+                </TouchableOpacity> */}
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      )}
+
+      <BottomSheet ref={drawerFotografia} index={0} snapPoints={[1, "95%"]}>
         <BottomSheetView
           style={{
             flex: 1,
@@ -698,15 +821,75 @@ export default function DetallesPrevio({ navigation }) {
               }}
             >
               <View style={{ width: "80%" }}>
-                <Text style={{ fontWeight: "bold" }}>Contenedor</Text>
+                <View>
+                  <Text style={{ fontWeight: "bold" }}>
+                    Estado de la mercancía
+                  </Text>
+
+                  <RadioButton.Group
+                    onValueChange={set_estado_mercancia}
+                    value={estado_mercancia}
+                  >
+                    <View
+                      style={{ flexDirection: "row", alignItems: "center" }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginRight: 16,
+                        }}
+                      >
+                        <RadioButton
+                          status={"checked"}
+                          color="green"
+                          value="sin_dano"
+                        />
+                        <Text>Sin Daño</Text>
+                      </View>
+
+                      <View
+                        style={{ flexDirection: "row", alignItems: "center" }}
+                      >
+                        <RadioButton color="red" value="con_dano" />
+                        <Text>Con Daño</Text>
+                      </View>
+                    </View>
+                  </RadioButton.Group>
+                </View>
+
+                {estado_mercancia === "con_dano" && (
+                  <View>
+                    <Text style={{ fontWeight: "bold" }}>Tipo de daño</Text>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginVertical: 5,
+                      }}
+                    >
+                      <View style={{ width: "100%" }}>
+                        <Select
+                          data={arrayTipoDano}
+                          value={arrayTipoDano.find(
+                            (val) => val.value === selectModelo?.value,
+                          )}
+                          onChange={setSelectDano}
+                        ></Select>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                <Text style={{ fontWeight: "bold" }}>Tipo de foto</Text>
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <View style={{ width: "100%" }}>
                     <Select
-                      data={contenedor}
-                      value={contenedor.find(
-                        (val) => val.value === formContenedor?.value,
+                      data={arrayTipoFoto}
+                      value={arrayTipoFoto.find(
+                        (val) => val.value === selectDano?.value,
                       )}
-                      onChange={setFormContenero}
+                      onChange={setSelectModelo}
                     ></Select>
                   </View>
 
@@ -722,15 +905,15 @@ export default function DetallesPrevio({ navigation }) {
                   </View>
                 </View>
 
-                <Text style={{ fontWeight: "bold" }}>Modelo</Text>
+                <Text style={{ fontWeight: "bold" }}>Número de parte</Text>
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <View style={{ width: "100%" }}>
                     <Select
-                      data={arrayModelos}
-                      value={arrayModelos.find(
-                        (val) => val.value === selectModelo?.value,
+                      data={arrayTipoFoto}
+                      value={arrayTipoFoto.find(
+                        (val) => val.value === selectParte?.value,
                       )}
-                      onChange={setSelectModelo}
+                      onChange={setSelectParte}
                     ></Select>
                   </View>
 
@@ -743,7 +926,9 @@ export default function DetallesPrevio({ navigation }) {
                       icon="cloud-upload"
                       size={34}
                       loading={subirImagenes}
-                      onPress={subirFotos}
+                      onPress={() => {
+                        subirFotos();
+                      }}
                       disabled={
                         imagenes_no_subidas?.length === 0 ? true : false
                       }
@@ -771,7 +956,6 @@ export default function DetallesPrevio({ navigation }) {
                         <View key={index}>
                           {index <= 11 && (
                             <Pressable
-                              key={index}
                               onPress={() => {
                                 setPermisoEliminarFoto(false);
                                 setUriImg(imagen);
@@ -808,7 +992,6 @@ export default function DetallesPrevio({ navigation }) {
                       <View key={index}>
                         {index <= 7 && (
                           <Pressable
-                            key={index}
                             onPress={() => {
                               setPermisoEliminarFoto(true);
                               setUriImg(imagen);
@@ -831,8 +1014,9 @@ export default function DetallesPrevio({ navigation }) {
               </View>
             </View>
           </ScrollView>
+
           <Button
-            onPress={() => bottomSheetRef.current?.close()}
+            onPress={() => drawerFotografia.current?.close()}
             mode="contained"
             style={{ backgroundColor: "white", borderRadius: 0 }}
           >
@@ -871,6 +1055,38 @@ export default function DetallesPrevio({ navigation }) {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      {sk_estatus_reconocedor !== "FI" && (
+        <Portal>
+          <FAB.Group
+            fabStyle={{ backgroundColor: menu ? "#d12812" : "#22c55e" }}
+            color="white"
+            containerStyle={{ backgroundColor: "blue" }}
+            open={menu}
+            visible={flotante}
+            icon={menu ? "close" : "invoice-text-check-outline"}
+            actions={[
+              {
+                visible: true,
+                icon: "checkbox-marked-outline",
+                color: "#22c55e",
+                label: "Finalizar Previos",
+                labelTextColor: "#827C7C",
+                onPress: () => {
+                  finalizarPrevio();
+                },
+              },
+            ]}
+            onStateChange={() => setMenu((prev) => !prev)}
+            onPress={() => {
+              if (menu) {
+                // callback al cerrar el menu
+                //setMenu(prev => !prev)
+              }
+            }}
+          />
+        </Portal>
+      )}
     </>
   );
 }

@@ -1,6 +1,6 @@
 //const host = 'http://192.168.1.75:3001'
-//const host = "http://192.168.50.1:3001";
-const host = "https://apexlw.woodward.mx";
+const host = "http://192.168.50.210:3001";
+//const host = "https://apexlw.woodward.mx";
 
 import useStorage from "../utils/Util_localStorage";
 import axios from "axios";

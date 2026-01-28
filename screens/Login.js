@@ -9,7 +9,7 @@ import colorPrimary from "../data/ColorPrimary";
 
 export default function Login({ navigation }) {
   const [usuario, set_usuario] = useState("cmendoza");
-  const [password, set_password] = useState("Chilaquiles$25");
+  const [password, set_password] = useState("123456"); //Chilaquiles$25
 
   const [cargandoInicio, set_cargandoInicio] = useState(false);
   const [checked, setChecked] = React.useState(false);

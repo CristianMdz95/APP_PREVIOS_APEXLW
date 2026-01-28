@@ -25,7 +25,7 @@ function StackUsuario({ color }) {
   const [nombreConsulta, set_nombreConsulta] = useState("");
 
   useEffect(() => {
-    //obtener_storage()
+    obtener_storage();
   }, []);
 
   const obtener_storage = async () => {
@@ -36,12 +36,8 @@ function StackUsuario({ color }) {
       const sk_empresa = JSON.parse(usuario)?.sk_empresa;
       const i_administrador = JSON.parse(usuario)?.i_administrador;
       const s_nombre_empresa = JSON.parse(usuario)?.s_nombre_empresa;
-      if (i_administrador === 1 && sk_empresa === undefined) {
-        set_ruta_inicial("Administrador");
-      } else {
-        set_nombreConsulta(s_nombre_empresa);
-        set_ruta_inicial("UsuariosScreen");
-      }
+
+      set_ruta_inicial("Inicio");
     } else {
       set_ruta_inicial("Login");
     }

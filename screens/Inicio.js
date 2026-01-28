@@ -7,45 +7,15 @@ import {
   RefreshControl,
   StatusBar,
   Text,
+  ActivityIndicator,
 } from "react-native";
-import { Divider, Card, Portal, FAB } from "react-native-paper";
+import { Divider, Card, Portal, FAB, Avatar } from "react-native-paper";
 import useStorage from "../utils/Util_localStorage";
 import { useFocusEffect } from "@react-navigation/native";
 import { Util_apiServices } from "../utils/Util_apiServices";
 import ColorPrimary from "../data/ColorPrimary";
-
-const previos2 = [
-  {
-    sk_previo: 1,
-    i_folio: "PRE-000001",
-    s_cliente: "TRACSA S.A.P.I. DE C.V.",
-    s_referencias: "W20140001, W20140002, W20140003",
-    s_bls: "BL-000001, BL-0000002",
-    s_guias: "GUIA00001, GUIA00002, GUIA00003",
-    s_recinto: "Terminal Internacional de Manzanillo, S.A. de C.V.",
-    s_contenedores: "CONTENEDOR A, CONTENEDOR B",
-  },
-  {
-    sk_previo: 2,
-    i_folio: "PRE-000002",
-    s_cliente: "TRACSA S.A.P.I. DE C.V.",
-    s_referencias: "W20140001, W20140002, W20140003",
-    s_bls: "BL-000001, BL-0000002",
-    s_guias: "GUIA00001, GUIA00002, GUIA00003",
-    s_recinto: "Terminal Internacional de Manzanillo, S.A. de C.V.",
-    s_contenedores: "CONTENEDOR A, CONTENEDOR B",
-  },
-  {
-    sk_previo: 3,
-    i_folio: "PRE-000003",
-    s_cliente: "TRACSA S.A.P.I. DE C.V.",
-    s_referencias: "W20140001, W20140002, W20140003",
-    s_bls: "BL-000001, BL-0000002",
-    s_guias: "GUIA00001, GUIA00002, GUIA00003",
-    s_recinto: "Terminal Internacional de Manzanillo, S.A. de C.V.",
-    s_contenedores: "CONTENEDOR A, CONTENEDOR B",
-  },
-];
+import { Util_dateFormat } from "../utils/Util_dateFormat";
+import Util_validarStorage from "../utils/Util_validarStorage";
 
 export default function Inicio({ navigation }) {
   const { Set, Get, Remove } = useStorage();
@@ -54,17 +24,20 @@ export default function Inicio({ navigation }) {
   const [menu, setMenu] = useState(false);
   const [flotante, setFlotante] = useState(true);
 
+  const [loading_cargar_datos, set_loading_cargar_datos] = useState(true);
+
   const cargarDetalles = async (sk_previo, sk_estatus_reconocedor) => {
     navigation.navigate("Detalles", { sk_previo, sk_estatus_reconocedor });
   };
 
   const obtenerDatos = async () => {
+    set_loading_cargar_datos(true);
     const result = await Util_apiServices(
       "/api/agen/traf/prev-apli/api-previos/obtenerPrevios",
       "GET",
     );
-
     setPrevios(result.data);
+    set_loading_cargar_datos(false);
   };
 
   useFocusEffect(
@@ -75,7 +48,22 @@ export default function Inicio({ navigation }) {
     }, []),
   );
 
-  return (
+  const salirAdministrador = async () => {
+    await Remove("usuario");
+    await Util_validarStorage({ navigation });
+  };
+
+  return loading_cargar_datos ? (
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <ActivityIndicator size="large" color={ColorPrimary.color} />
+    </View>
+  ) : (
     <View style={{ flex: 1, gap: 6, padding: 6, backgroundColor: "#e5e7eb" }}>
       <ScrollView
         refreshControl={
@@ -87,47 +75,154 @@ export default function Inicio({ navigation }) {
       >
         {Object.values(previos).length > 0 &&
           Object.entries(previos).map(([sk_previo, previo], index) => {
+            let color_status =
+              previo?.sk_estatus_reconocedor === "FsI" ? "#22c55e" : "#f59e0b";
+
             return (
               <Card
                 key={sk_previo}
-                style={{ marginBottom: 10, backgroundColor: "white" }}
+                style={{
+                  borderLeftColor: color_status,
+                  borderLeftWidth: 5,
+                  marginBottom: 10,
+                  backgroundColor: "white",
+                }}
               >
                 <Card.Content>
-                  <TouchableOpacity
-                    key={index}
-                    onPress={() => {
-                      setFlotante(false);
-                      cargarDetalles(
-                        previo?.sk_previo,
-                        previo?.sk_estatus_reconocedor,
-                      );
-                    }}
-                  >
-                    <View style={{ flexDirection: "column" }}>
-                      <Text
-                        style={{ color: "red", fontWeight: "bold" }}
-                        variant="titleLarge"
+                  <View>
+                    <TouchableOpacity
+                      key={index}
+                      onPress={() => {
+                        setFlotante(false);
+                        cargarDetalles(
+                          previo?.sk_previo,
+                          previo?.sk_estatus_reconocedor,
+                        );
+                      }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                        }}
                       >
-                        {previo?.i_folio}
-                      </Text>
-                      <Text variant="bodyLarge" numberOfLines={1}>
+                        <Text
+                          variant="titleLarge"
+                          style={{
+                            color: "red",
+                            fontSize: 16,
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {previo?.i_folio}
+                        </Text>
+
+                        {previo?.sk_estatus_reconocedor === "FsI" ? (
+                          <Text
+                            numberOfLines={1}
+                            style={{
+                              color: color_status,
+                              fontWeight: "lighter",
+                              fontSize: 16,
+                            }}
+                          >
+                            Finalizado
+                          </Text>
+                        ) : (
+                          <Text
+                            numberOfLines={1}
+                            style={{
+                              color: color_status,
+                              fontWeight: "lighter",
+                              fontSize: 16,
+                            }}
+                          >
+                            EN PROCESO
+                          </Text>
+                        )}
+                      </View>
+
+                      <Text numberOfLines={1} variant="bodyMedium">
                         {previo?.s_nombre_cliente}
                       </Text>
-                      <Text variant="bodyLarge" numberOfLines={1}>
+                      <Text numberOfLines={1} variant="bodyMedium">
                         {previo?.empresa_terminal}
                       </Text>
                       <Divider style={{ marginVertical: 5 }}></Divider>
-                      <Text variant="labelLarge" numberOfLines={1}>
-                        {previo?.s_referencias}
-                      </Text>
-                      <Text variant="labelLarge" numberOfLines={1}>
-                        {previo?.s_contenedores || "-"}
-                      </Text>
-                      <Text variant="labelLarge" numberOfLines={1}>
-                        {previo?.s_bls || "-"}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          paddingHorizontal: 0,
+                        }}
+                      >
+                        <View>
+                          <Text
+                            variant="bodyMedium"
+                            style={{ fontWeight: "bold" }}
+                          >
+                            Tipo de carga
+                          </Text>
+                          <Text variant="bodyMedium">
+                            {previo?.nombre_tipo_carga}
+                          </Text>
+                        </View>
+
+                        <View></View>
+
+                        <View>
+                          <Text
+                            variant="bodyMedium"
+                            style={{ fontWeight: "bold" }}
+                          >
+                            Bultos
+                          </Text>
+                          <Text
+                            variant="bodyMedium"
+                            style={{ textAlign: "center" }}
+                          >
+                            {previo?.i_bultos}
+                          </Text>
+                        </View>
+                        <View>
+                          <Text
+                            variant="bodyMedium"
+                            style={{ fontWeight: "bold" }}
+                          >
+                            Peso
+                          </Text>
+                          <Text
+                            variant="bodyMedium"
+                            style={{ textAlign: "center" }}
+                          >
+                            {previo?.f_peso}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          paddingHorizontal: 0,
+                        }}
+                      >
+                        <View>
+                          <Text
+                            variant="bodyMedium"
+                            style={{ fontWeight: "bold" }}
+                          >
+                            Fecha y Hora Confirmación
+                          </Text>
+                          <Text variant="bodyMedium">
+                            {Util_dateFormat(previo?.d_fecha_confirmacion) +
+                              " - " +
+                              previo?.t_hora_confirmacion}
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
                 </Card.Content>
               </Card>
             );
@@ -146,8 +241,7 @@ export default function Inicio({ navigation }) {
                 icon: "logout",
                 color: "red",
                 onPress: () => {
-                  alert("asdsadad");
-                  /*  salirAdministrador(); */
+                  salirAdministrador();
                 },
               },
             ]}
