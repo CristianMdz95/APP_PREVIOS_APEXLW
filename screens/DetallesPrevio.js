@@ -9,6 +9,7 @@ import {
   Alert,
   useWindowDimensions,
   ActivityIndicator,
+  TextInput,
 } from "react-native";
 import {
   Text,
@@ -38,6 +39,8 @@ import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import * as FileSystem from "expo-file-system/legacy";
 import colorPrimary from "../data/ColorPrimary";
+import Input from "../components/Input";
+import InputArea from "../components/InputArea";
 
 /* ===================== */
 const arrayTipoFoto = [
@@ -65,11 +68,14 @@ export default function DetallesPrevio({ navigation }) {
   const [menu, setMenu] = useState(false);
   const [flotante, setFlotante] = useState(true);
   const [previo, setPrevio] = useState(null);
-  const [contenedor, setContenedor] = useState([]);
+  const [contenedores, setContenedores] = useState([]);
   const [formContenedor, setFormContenero] = useState(null);
+
   const [selectModelo, setSelectModelo] = useState(null);
   const [selectParte, setSelectParte] = useState(null);
   const [selectDano, setSelectDano] = useState(null);
+  const [selectContenedor, setSelectContenedor] = useState(null);
+  const [inputObservaciones, setInputObservaciones] = useState(null);
 
   const [TotalSubidas, setTotalSubidas] = useState(0);
 
@@ -190,6 +196,45 @@ export default function DetallesPrevio({ navigation }) {
       abrirCamara();
     } catch (error) {
       console.log("Error cámara:", error);
+    }
+  };
+
+  const abrirGaleria = async () => {
+    try {
+      const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permiso.granted) {
+        Alert.alert(
+          "Permiso requerido",
+          "Necesitas permitir acceso a la galería",
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsMultipleSelection: true, // 👈 puedes quitarlo si solo quieres una
+        quality: 0.7,
+      });
+
+      if (result.canceled) return;
+
+      await asegurarCarpetas();
+
+      for (const asset of result.assets) {
+        const uri = asset.uri;
+        const nombre = uri.split("/").pop();
+
+        const destino = `${basePath}/imagenes_no_subidas/${nombre}`;
+
+        await FileSystem.copyAsync({
+          from: uri,
+          to: destino,
+        });
+      }
+
+      await mostrarImagenes();
+    } catch (error) {
+      console.log("Error galería:", error);
     }
   };
 
@@ -367,6 +412,11 @@ export default function DetallesPrevio({ navigation }) {
         { sk_previo },
       ).then((res) => {
         setPrevio(res.data);
+        let contenedores = res.data.contenedores.map((contendor) => ({
+          label: contendor.s_numero_contenedor,
+          value: contendor.s_numero_contenedor,
+        }));
+        setContenedores(contenedores);
         set_loading_cargar_datos(false);
       });
     }, []),
@@ -383,6 +433,7 @@ export default function DetallesPrevio({ navigation }) {
     alert("asdasdj");
   };
 
+  console.log("contenedores:", contenedores);
   return (
     <>
       {loading_cargar_datos ? (
@@ -883,7 +934,7 @@ export default function DetallesPrevio({ navigation }) {
 
                 <Text style={{ fontWeight: "bold" }}>Tipo de foto</Text>
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <View style={{ width: "100%" }}>
+                  <View style={{ width: "79%" }}>
                     <Select
                       data={arrayTipoFoto}
                       value={arrayTipoFoto.find(
@@ -901,6 +952,17 @@ export default function DetallesPrevio({ navigation }) {
                       icon="camera-plus"
                       size={34}
                       onPress={abrirCamara}
+                    />
+                  </View>
+
+                  {/* Galeria */}
+                  <View style={{ alignItems: "center" }}>
+                    <IconButton
+                      style={{ borderRadius: 10 }}
+                      mode="outlined"
+                      icon="image-search"
+                      size={34}
+                      onPress={abrirGaleria}
                     />
                   </View>
                 </View>
@@ -935,6 +997,34 @@ export default function DetallesPrevio({ navigation }) {
                     />
                   </View>
                 </View>
+
+                {previo?.sk_tipo_carga === "CONT" && (
+                  <>
+                    <Text style={{ fontWeight: "bold" }}>Contenedores</Text>
+                    <View
+                      style={{ flexDirection: "row", alignItems: "center" }}
+                    >
+                      <View style={{ width: "100%" }}>
+                        <Select
+                          data={contenedores}
+                          value={contenedores.find(
+                            (val) => val.value === selectContenedor?.value,
+                          )}
+                          onChange={setSelectContenedor}
+                        ></Select>
+                      </View>
+                    </View>
+                  </>
+                )}
+
+                <Text style={{ fontWeight: "bold", marginVertical: 5 }}>
+                  Observaciones
+                </Text>
+                <InputArea
+                  placeholder="Observaciones"
+                  value={inputObservaciones}
+                  onChangeText={(text) => setInputObservaciones(text)}
+                />
               </View>
             </View>
 
