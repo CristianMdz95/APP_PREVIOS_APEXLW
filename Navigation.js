@@ -10,6 +10,7 @@ import Empresas from "./screens/Empresas";
 import Sucursales from "./screens/Sucursales";
 import Inicio from "./screens/Inicio";
 import DetallesPrevio from "./screens/DetallesPrevio";
+import Fotografias from "./screens/Fotografias";
 
 import colorPrimary from "./data/ColorPrimary";
 
@@ -123,6 +124,20 @@ function StackUsuario({ color }) {
             }}
           />
 
+          {/* FOTOGRAFIAS */}
+          <Stack.Screen
+            name="Fotografias"
+            component={Fotografias}
+            options={{
+              headerShown: true,
+              headerStyle: {
+                backgroundColor: colorPrimary.color, // Aquí puedes poner el color que desees
+              },
+              headerTintColor: "white",
+              headerTitleAlign: "center",
+              headerTitle: "Fotografias",
+            }}
+          />
           {/* PRUEBA */}
           <Stack.Screen
             name="Prueba"
