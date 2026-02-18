@@ -4,6 +4,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  BackHandler,
 } from "react-native";
 import {
   Text,
@@ -14,13 +15,16 @@ import {
   Dialog,
   Button,
   Card,
+  FAB,
+  Icon,
+  ActivityIndicator,
 } from "react-native-paper";
 import { Image } from "expo-image";
 import Select from "../components/Select";
 
 import InputArea from "../components/InputArea";
-import { useRoute } from "@react-navigation/native";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useRoute } from "@react-navigation/native";
+import { useCallback, useEffect, useState } from "react";
 
 /* ===================== */
 const arrayTipoFoto = [
@@ -37,25 +41,35 @@ const arrayTipoDano = [
 /* IMÁGENES */
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
+import Input from "../components/Input";
+import { Util_apiForm, Util_apiServices } from "../utils/Util_apiServices";
+import { showMessage } from "react-native-flash-message";
 
 export default function Fotografias({ navigation }) {
   const route = useRoute();
-  const { previo_data, sk_estatus_reconocedor, sk_previo } = route.params;
+  const {
+    previo_data: previo,
+    sk_estatus_reconocedor,
+    sk_previo,
+  } = route.params;
 
-  const [previo, setPrevio] = useState(null);
-  const [contenedores, setContenedores] = useState([]);
-
-  const [selectModelo, setSelectModelo] = useState(null);
+  const [selectTipoFoto, setSelectTipoFoto] = useState(null);
+  const [nuevoParte, setNuevoParte] = useState(null);
   const [selectParte, setSelectParte] = useState(null);
   const [selectDano, setSelectDano] = useState(null);
   const [selectContenedor, setSelectContenedor] = useState(null);
   const [inputObservaciones, setInputObservaciones] = useState(null);
 
-  const [estado_mercancia, set_estado_mercancia] = useState("opcion1");
+  const [menu, setMenu] = useState(false);
+  const [flotante, setFlotante] = useState(false);
+
+  const [estado_mercancia, set_estado_mercancia] = useState("sin_dano");
+  const [nuevo_parte, set_nuevo_parte] = useState(false);
 
   const [imagenes_subidas, set_imagenes_subidas] = useState([]);
   const [imagenes_no_subidas, set_imagenes_no_subidas] = useState([]);
   const [subirImagenes, setSubirImagenes] = useState(false);
+  const [loading_subiendo_fotos, set_loading_subiendo_fotos] = useState(false);
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [uriImg, setUriImg] = useState(null);
@@ -73,6 +87,29 @@ export default function Fotografias({ navigation }) {
     }
     prepararDirectorios();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        () => {
+          if (menu) {
+            setMenu(false);
+            return true; // ⛔ evita la navegación
+          }
+          return false; // ✅ permite el back normal
+        },
+      );
+
+      return () => subscription.remove();
+    }, [menu]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      setFlotante(true);
+    }, []),
+  );
 
   /* ===================== */
   const prepararDirectorios = async () => {
@@ -193,7 +230,7 @@ export default function Fotografias({ navigation }) {
 
       const subidasPath = `${basePath}/imagenes_subidas`;
       const noSubidasPath = `${basePath}/imagenes_no_subidas`;
-      console.log("noSubidasPath", noSubidasPath);
+
       const subidasFiles = await FileSystem.readDirectoryAsync(subidasPath);
       const noSubidasFiles = await FileSystem.readDirectoryAsync(noSubidasPath);
 
@@ -209,7 +246,7 @@ export default function Fotografias({ navigation }) {
         })),
       );
 
-      setTotalSubidas(subidasFiles.length);
+      //setTotalSubidas(subidasFiles.length);
       //setTotalNoSubidas(noSubidasFiles.length);
     } catch (error) {
       console.log("mostrarImagenes error:", error);
@@ -219,11 +256,13 @@ export default function Fotografias({ navigation }) {
   /* ===================== */
   const subirFotos = async () => {
     try {
+      set_loading_subiendo_fotos(true);
       setSubirImagenes(true);
       if (imagenes_no_subidas.length === 0) {
         alert("No se encontraron archivos.");
         return false;
       }
+
       const digi = await api_procesarArchivosDigitalizacion(
         sk_previo,
         imagenes_no_subidas,
@@ -235,8 +274,9 @@ export default function Fotografias({ navigation }) {
         },
       );
 
-      if (digi?.data) {
+      if (digi) {
         const documentos = [];
+
         for (let img of digi.data) {
           documentos.push(img.sk_documento_digitalizacion);
           await FileSystem.moveAsync({
@@ -244,19 +284,42 @@ export default function Fotografias({ navigation }) {
             to: `${FileSystem.documentDirectory}${sk_previo}/imagenes_subidas/${img.s_nombre_original}`,
           });
         }
+
         const res_guardar = await Util_apiServices(
           "/api/agen/traf/prev-foto/api-previos/app_guardar",
           "POST",
           {
             documentos,
             sk_previo,
-            s_nuevo_modelo: null,
-            s_estado_mercancia: null,
-            sk_previo_modelo: null,
+            s_nuevo_modelo: nuevoParte,
+            sk_previo_modelo: selectParte?.value,
+            s_observaciones: inputObservaciones,
+            s_estado_mercancia: selectDano?.value,
+            sk_previo_contenedor: selectContenedor?.value,
+            sk_tipo_foto: selectTipoFoto?.value,
+            sk_dano: null,
           },
         );
-        console.log(res_guardar);
+
+        /* Notificación de subida correctamente */
+        showMessage({
+          message: "Notificación",
+          description: "Las fotografías se subieron correctamente.",
+          type: "success",
+        });
+
+        /* Limpiar los datos */
+        set_estado_mercancia("sin_dano");
+        setSelectDano(null);
+        setSelectTipoFoto(null);
+        setNuevoParte(null);
+        setSelectParte(null);
+        setSelectContenedor(null);
+        setInputObservaciones(null);
+
+        set_loading_subiendo_fotos(false);
       }
+
       mostrarImagenes();
       setSubirImagenes(false);
     } catch (error) {
@@ -300,6 +363,7 @@ export default function Fotografias({ navigation }) {
       }
 
       const rutas = await Util_apiForm("/api/digitalizacion", "POST", formFile);
+
       return await rutas.json();
     } catch (error) {}
   };
@@ -332,16 +396,25 @@ export default function Fotografias({ navigation }) {
     <>
       <Card
         style={{
-          paddingTop: 10,
+          margin: 10,
           flexDirection: "row",
           backgroundColor: "white",
-          gap: 13,
-          borderTopLeftRadius: 0,
-          borderTopRightRadius: 0,
         }}
       >
         <Card.Content>
-          <View style={{ width: "80%" }}>
+          <View>
+            <Text
+              variant="titleLarge"
+              style={{
+                color: "red",
+                marginVertical: 5,
+                borderBottomWidth: 1,
+                borderColor: "lightgray",
+              }}
+            >
+              {previo?.i_folio}
+            </Text>
+
             <View>
               <Text style={{ fontWeight: "bold" }}>Estado de la mercancía</Text>
 
@@ -357,11 +430,7 @@ export default function Fotografias({ navigation }) {
                       marginRight: 16,
                     }}
                   >
-                    <RadioButton
-                      status={"checked"}
-                      color="green"
-                      value="sin_dano"
-                    />
+                    <RadioButton color="green" value="sin_dano" />
                     <Text>Sin Daño</Text>
                   </View>
 
@@ -387,7 +456,7 @@ export default function Fotografias({ navigation }) {
                     <Select
                       data={arrayTipoDano}
                       value={arrayTipoDano.find(
-                        (val) => val.value === selectModelo?.value,
+                        (val) => val.value === selectDano?.value,
                       )}
                       onChange={setSelectDano}
                     ></Select>
@@ -396,95 +465,123 @@ export default function Fotografias({ navigation }) {
               </View>
             )}
 
-            <Text style={{ fontWeight: "bold" }}>Tipo de foto</Text>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <View style={{ width: "79%" }}>
-                <Select
-                  data={arrayTipoFoto}
-                  value={arrayTipoFoto.find(
-                    (val) => val.value === selectDano?.value,
-                  )}
-                  onChange={setSelectModelo}
-                ></Select>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                gap: 5,
+              }}
+            >
+              <View style={{ width: "40%" }}>
+                <Text style={{ fontWeight: "bold" }}>Tipo de foto</Text>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <View style={{ width: "100%" }}>
+                    <Select
+                      data={arrayTipoFoto}
+                      value={arrayTipoFoto.find(
+                        (val) => val.value === selectTipoFoto?.value,
+                      )}
+                      onChange={setSelectTipoFoto}
+                    ></Select>
+                  </View>
+                </View>
               </View>
 
-              {/* Camara */}
-              <View style={{ alignItems: "center" }}>
-                <IconButton
-                  style={{ borderRadius: 10 }}
-                  mode="outlined"
-                  icon="camera-plus"
-                  size={34}
-                  onPress={abrirCamara}
-                />
-              </View>
+              {!nuevo_parte ? (
+                <View style={{ width: "48%" }}>
+                  <Text style={{ fontWeight: "bold" }}>Número de parte</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <View style={{ width: "100%" }}>
+                      <Select
+                        data={previo?.select_modelos}
+                        value={previo?.select_modelos.find(
+                          (val) => val.value === selectParte?.value,
+                        )}
+                        onChange={setSelectParte}
+                      ></Select>
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <View style={{ width: "48%" }}>
+                  <Text style={{ fontWeight: "bold" }}>Nuevo Número</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <View style={{ width: "100%" }}>
+                      <Input
+                        placeholder="Nuevo Número"
+                        value={nuevoParte}
+                        onChangeText={(text) => setNuevoParte(text)}
+                      />
+                    </View>
+                  </View>
+                </View>
+              )}
 
-              {/* Galeria */}
-              <View style={{ alignItems: "center" }}>
-                <IconButton
-                  style={{ borderRadius: 10 }}
-                  mode="outlined"
-                  icon="image-search"
-                  size={34}
-                  onPress={abrirGaleria}
-                />
-              </View>
-            </View>
-
-            <Text style={{ fontWeight: "bold" }}>Número de parte</Text>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <View style={{ width: "100%" }}>
-                <Select
-                  data={arrayTipoFoto}
-                  value={arrayTipoFoto.find(
-                    (val) => val.value === selectParte?.value,
-                  )}
-                  onChange={setSelectParte}
-                ></Select>
-              </View>
-
-              {/* Camara */}
-              <View style={{ alignItems: "center" }}>
-                <IconButton
-                  style={{ borderRadius: 10 }}
-                  iconColor="green"
-                  mode="outlined"
-                  icon="cloud-upload"
-                  size={34}
-                  loading={subirImagenes}
-                  onPress={() => {
-                    subirFotos();
+              <View
+                style={{
+                  width: "12%",
+                }}
+              >
+                <View
+                  style={{
+                    marginTop: 19.5,
+                    backgroundColor: nuevo_parte ? "#FF7070" : "#6CA651",
+                    borderColor: "#25671E",
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
-                  disabled={imagenes_no_subidas?.length === 0 ? true : false}
-                />
+                >
+                  <IconButton
+                    icon={nuevo_parte ? "close" : "plus"}
+                    iconColor={"white"}
+                    size={20}
+                    onPress={() => {
+                      setNuevoParte(null);
+                      setSelectParte(null);
+                      set_nuevo_parte((prev) => !prev);
+                    }}
+                  />
+                </View>
               </View>
             </View>
 
             {previo?.sk_tipo_carga === "CONT" && (
-              <>
+              <View style={{ marginTop: 5 }}>
                 <Text style={{ fontWeight: "bold" }}>Contenedores</Text>
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <View style={{ width: "100%" }}>
                     <Select
-                      data={contenedores}
-                      value={contenedores.find(
+                      data={previo?.select_contenedores}
+                      value={previo?.select_contenedores.find(
                         (val) => val.value === selectContenedor?.value,
                       )}
                       onChange={setSelectContenedor}
                     ></Select>
                   </View>
                 </View>
-              </>
+              </View>
             )}
 
-            <Text style={{ fontWeight: "bold", marginVertical: 5 }}>
-              Observaciones
-            </Text>
-            <InputArea
-              placeholder="Observaciones"
-              value={inputObservaciones}
-              onChangeText={(text) => setInputObservaciones(text)}
-            />
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                gap: 5,
+              }}
+            >
+              <View style={{ width: "100%" }}>
+                <Text style={{ fontWeight: "bold", marginVertical: 5 }}>
+                  Observaciones
+                </Text>
+                <Input
+                  placeholder="Observaciones"
+                  value={inputObservaciones}
+                  onChangeText={(text) => setInputObservaciones(text)}
+                />
+              </View>
+            </View>
           </View>
         </Card.Content>
       </Card>
@@ -499,74 +596,102 @@ export default function Fotografias({ navigation }) {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: 120 }}
         >
-          {/* ================= FORMULARIO ================= */}
-
-          <View
-            style={{
-              paddingTop: 10,
-              flexDirection: "row",
-              gap: 13,
-              padding: 6,
-            }}
-          >
-            <View style={{ width: "100%" }}>
-              {/* TODO tu formulario tal cual lo tienes */}
-              {/* NO CAMBIA NADA AQUÍ */}
-            </View>
-          </View>
-
           <Divider style={{ marginVertical: 5 }} />
 
-          {/* ================= IMÁGENES SUBIDAS ================= */}
-          <View style={{ paddingHorizontal: 10 }}>
-            <Text style={{ fontSize: 20, textAlign: "center" }}>
-              Imagenes subidas
-            </Text>
-
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
-              {imagenes_subidas.map((imagen, index) => (
-                <Pressable
-                  key={index}
-                  onPress={() => {
-                    setPermisoEliminarFoto(false);
-                    setUriImg(imagen);
-                    setModalVisible(true);
+          <View>
+            {loading_subiendo_fotos ? (
+              <View style={{ marginTop: 10 }}>
+                <ActivityIndicator size={40} animating={true} color={"green"} />
+                <Text
+                  style={{
+                    textAlign: "center",
+                    paddingTop: 20,
+                    color: "gray",
                   }}
                 >
-                  <Image
-                    source={imagen}
-                    style={{ borderRadius: 5, width: 88, height: 80 }}
-                    contentFit="cover"
-                  />
-                </Pressable>
-              ))}
-            </View>
-          </View>
+                  Subiendo Fotografias
+                </Text>
+              </View>
+            ) : (
+              <View>
+                {/* ================= IMÁGENES SUBIDAS ================= */}
+                <View style={{ paddingHorizontal: 10 }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      textAlign: "left",
+                      fontWeight: "lighter",
+                      color: "gray",
+                      borderBottomWidth: 1,
+                      borderBottomColor: "lightgray",
+                      marginBottom: 5,
+                    }}
+                  >
+                    IMAGENES SUBIDAS
+                  </Text>
 
-          {/* ================= IMÁGENES NO SUBIDAS ================= */}
-          <View style={{ paddingHorizontal: 10, marginTop: 10 }}>
-            <Text style={{ fontSize: 20, textAlign: "center" }}>
-              Imagenes no subidas
-            </Text>
+                  <View
+                    style={{ flexDirection: "row", flexWrap: "wrap", gap: 3 }}
+                  >
+                    {imagenes_subidas.map((imagen, index) => (
+                      <Pressable
+                        key={index}
+                        onPress={() => {
+                          setPermisoEliminarFoto(false);
+                          setUriImg(imagen);
+                          setModalVisible(true);
+                        }}
+                      >
+                        <Image
+                          transition={1000}
+                          source={imagen}
+                          style={{ borderRadius: 5, width: 88, height: 80 }}
+                          contentFit="cover"
+                        />
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
 
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 3 }}>
-              {imagenes_no_subidas.map((imagen, index) => (
-                <Pressable
-                  key={index}
-                  onPress={() => {
-                    setPermisoEliminarFoto(true);
-                    setUriImg(imagen);
-                    setModalVisible(true);
-                  }}
-                >
-                  <Image
-                    source={imagen}
-                    style={{ borderRadius: 5, width: 88, height: 80 }}
-                    contentFit="cover"
-                  />
-                </Pressable>
-              ))}
-            </View>
+                {/* ================= IMÁGENES NO SUBIDAS ================= */}
+                <View style={{ paddingHorizontal: 10, marginTop: 10 }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      textAlign: "left",
+                      fontWeight: "lighter",
+                      color: "gray",
+                      borderBottomWidth: 1,
+                      borderBottomColor: "lightgray",
+                      marginBottom: 5,
+                    }}
+                  >
+                    IMAGENES NO SUBIDAS
+                  </Text>
+
+                  <View
+                    style={{ flexDirection: "row", flexWrap: "wrap", gap: 3 }}
+                  >
+                    {imagenes_no_subidas.map((imagen, index) => (
+                      <Pressable
+                        key={index}
+                        onPress={() => {
+                          setPermisoEliminarFoto(true);
+                          setUriImg(imagen);
+                          setModalVisible(true);
+                        }}
+                      >
+                        <Image
+                          source={imagen}
+                          style={{ borderRadius: 5, width: 88, height: 80 }}
+                          contentFit="cover"
+                        />
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -583,9 +708,8 @@ export default function Fotografias({ navigation }) {
               style={{
                 borderRadius: 10,
                 width: "100%",
-                height: 500,
+                height: 250,
               }}
-              contentFit="cover"
             />
           </Dialog.Content>
 
@@ -597,6 +721,75 @@ export default function Fotografias({ navigation }) {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      {sk_estatus_reconocedor !== "FI" && (
+        <Portal>
+          <FAB.Group
+            fabStyle={{ backgroundColor: menu ? "#d12812" : "#3291B6" }}
+            color="white"
+            containerStyle={{ backgroundColor: "blue" }}
+            open={menu}
+            visible={flotante}
+            icon={menu ? "close" : "camera-plus-outline"}
+            actions={[
+              {
+                visible: true,
+                icon: "camera-plus",
+                color: "#BB8ED0",
+                label: "Abrir Camara",
+                labelTextColor: "#827C7C",
+                onPress: () => {
+                  abrirCamara();
+                  setMenu(true);
+                },
+              },
+              {
+                visible: true,
+                icon: "image-search",
+                color: "#00B7B5",
+                label: "Abrir Galería",
+                labelTextColor: "#827C7C",
+                onPress: () => {
+                  abrirGaleria();
+                  setMenu(true);
+                },
+              },
+              {
+                visible: true,
+                icon: "cloud-upload",
+                color:
+                  imagenes_no_subidas.length > 0 && !loading_subiendo_fotos
+                    ? "#8BAE66"
+                    : "#7c767646",
+                label: "Subir Fotografías",
+                labelTextColor:
+                  imagenes_no_subidas.length > 0 && !loading_subiendo_fotos
+                    ? "#827C7C"
+                    : "#7c767646",
+                onPress: () => {
+                  if (
+                    imagenes_no_subidas.length === 0 ||
+                    loading_subiendo_fotos
+                  ) {
+                    setMenu(false);
+                    return false;
+                  } else {
+                    subirFotos();
+                    setMenu(true);
+                  }
+                },
+              },
+            ]}
+            onStateChange={() => setMenu((prev) => !prev)}
+            onPress={() => {
+              if (menu) {
+                // callback al cerrar el menu
+                //setMenu(prev => !prev)
+              }
+            }}
+          />
+        </Portal>
+      )}
     </>
   );
 }

@@ -13,6 +13,7 @@ export default function Login({ navigation }) {
 
   const [cargandoInicio, set_cargandoInicio] = useState(false);
   const [checked, setChecked] = React.useState(false);
+  const [loading, set_loading] = React.useState(false);
 
   const { Set, Get, Remove } = useStorage();
 
@@ -34,7 +35,7 @@ export default function Login({ navigation }) {
 
   const iniciar_sesion = async () => {
     //set_cargandoInicio(true)
-
+    set_loading(true);
     const result = await Util_apiServices(
       "/api/core/prin/inic-sesi/iniciar-sesion/iniciarSesion",
       "POST",
@@ -60,6 +61,8 @@ export default function Login({ navigation }) {
         s_apellido_materno: result.data?.usuario?.s_apellido_materno,
       },
     });
+
+    set_loading(false);
     return true;
     //set_cargandoInicio(false)
   };
@@ -147,20 +150,19 @@ export default function Login({ navigation }) {
 
               <View style={{ width: "100%" }}>
                 <View style={{ width: "100%", alignItems: "center" }}>
-                  <TouchableOpacity
+                  <Button
                     style={{
                       backgroundColor: cargandoInicio ? "#B5C0D0" : "white",
                       padding: 15,
                       borderRadius: 5,
                       width: "40%",
                     }}
-                    disabled={false}
+                    loading={loading}
+                    disabled={loading}
                     onPress={iniciar_sesion}
                   >
-                    <Text style={{ textAlign: "center", fontSize: 16 }}>
-                      {cargandoInicio ? "Cargando..." : "Iniciar Sesión"}
-                    </Text>
-                  </TouchableOpacity>
+                    {cargandoInicio ? "Cargando..." : "Iniciar Sesión"}
+                  </Button>
 
                   <View style={{ paddingTop: 7 }}>
                     <Text style={{ color: "white", fontSize: 12 }}> V1.0</Text>

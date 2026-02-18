@@ -22,7 +22,7 @@ export default function Inicio({ navigation }) {
   const [cargandoPrevios, setCargandoPrevios] = useState(false);
   const [previos, setPrevios] = useState([]);
   const [menu, setMenu] = useState(false);
-  const [flotante, setFlotante] = useState(true);
+  const [flotante, setFlotante] = useState(false);
 
   const [loading_cargar_datos, set_loading_cargar_datos] = useState(true);
 
@@ -42,9 +42,14 @@ export default function Inicio({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
+      setFlotante(true);
+    }, []),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
       StatusBar.setBackgroundColor(ColorPrimary.color);
       obtenerDatos();
-      setFlotante(true);
     }, []),
   );
 

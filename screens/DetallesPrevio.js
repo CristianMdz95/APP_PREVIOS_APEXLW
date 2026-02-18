@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
   ActivityIndicator,
   TextInput,
+  BackHandler,
 } from "react-native";
 import {
   Text,
@@ -42,44 +43,17 @@ import colorPrimary from "../data/ColorPrimary";
 import Input from "../components/Input";
 import InputArea from "../components/InputArea";
 
-/* ===================== */
-const arrayTipoFoto = [
-  { label: "Apertura", value: "APERTU" },
-  { label: "General", value: "GENERA" },
-  { label: "Cierre", value: "CIERRE" },
-];
-
-const arrayTipoDano = [
-  { label: "Abollado", value: "ABOLLAD" },
-  { label: "Golpeado", value: "GOLPEAD" },
-];
-
 export default function DetallesPrevio({ navigation }) {
-  const drawerFotografia = useRef(null);
-
   const route = useRoute();
   const { sk_previo, sk_estatus_reconocedor } = route.params;
 
-  const [formulario_foto, set_formulario_foto] = useState({
-    s_estado_mercancia: "sin_dano",
-  });
-
   const [loading_cargar_datos, set_loading_cargar_datos] = useState(true);
   const [menu, setMenu] = useState(false);
-  const [flotante, setFlotante] = useState(true);
+  const [flotante, setFlotante] = useState(false);
   const [previo, setPrevio] = useState(null);
   const [contenedores, setContenedores] = useState([]);
-  const [formContenedor, setFormContenero] = useState(null);
-
-  const [selectModelo, setSelectModelo] = useState(null);
-  const [selectParte, setSelectParte] = useState(null);
-  const [selectDano, setSelectDano] = useState(null);
-  const [selectContenedor, setSelectContenedor] = useState(null);
-  const [inputObservaciones, setInputObservaciones] = useState(null);
 
   const [TotalSubidas, setTotalSubidas] = useState(0);
-
-  const [estado_mercancia, set_estado_mercancia] = useState("opcion1");
 
   const [imagenes_subidas, set_imagenes_subidas] = useState([]);
   const [imagenes_no_subidas, set_imagenes_no_subidas] = useState([]);
@@ -143,6 +117,29 @@ export default function DetallesPrevio({ navigation }) {
     prepararDirectorios();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      setFlotante(true);
+    }, []),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        () => {
+          if (menu) {
+            setMenu(false);
+            return true; // ⛔ evita la navegación
+          }
+          return false; // ✅ permite el back normal
+        },
+      );
+
+      return () => subscription.remove();
+    }, [menu]),
+  );
+
   /* ===================== */
   const prepararDirectorios = async () => {
     await FileSystem.makeDirectoryAsync(`${basePath}/imagenes_subidas`, {
@@ -152,90 +149,6 @@ export default function DetallesPrevio({ navigation }) {
       intermediates: true,
     });
     mostrarImagenes();
-  };
-
-  /* ===================== */
-
-  const guardarImagen = async (uri) => {
-    try {
-      const permiso = await MediaLibrary.requestPermissionsAsync();
-      if (permiso.status === "granted") {
-        await MediaLibrary.saveToLibraryAsync(uri);
-      }
-    } catch (error) {
-      console.log("Error guardarImagen:", error);
-    }
-  };
-
-  const abrirCamara = async () => {
-    try {
-      const permiso = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permiso.granted) return;
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ["images"],
-        quality: 0.7,
-      });
-
-      if (result.canceled) return;
-
-      const uri = result.assets[0].uri;
-      const nombre = uri.split("/").pop();
-
-      await asegurarCarpetas();
-      await guardarImagen(uri);
-
-      await FileSystem.moveAsync({
-        from: uri,
-        to: `${basePath}/imagenes_no_subidas/${nombre}`,
-      });
-
-      await mostrarImagenes();
-
-      //Volver a abrir la camara
-      abrirCamara();
-    } catch (error) {
-      console.log("Error cámara:", error);
-    }
-  };
-
-  const abrirGaleria = async () => {
-    try {
-      const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permiso.granted) {
-        Alert.alert(
-          "Permiso requerido",
-          "Necesitas permitir acceso a la galería",
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsMultipleSelection: true, // 👈 puedes quitarlo si solo quieres una
-        quality: 0.7,
-      });
-
-      if (result.canceled) return;
-
-      await asegurarCarpetas();
-
-      for (const asset of result.assets) {
-        const uri = asset.uri;
-        const nombre = uri.split("/").pop();
-
-        const destino = `${basePath}/imagenes_no_subidas/${nombre}`;
-
-        await FileSystem.copyAsync({
-          from: uri,
-          to: destino,
-        });
-      }
-
-      await mostrarImagenes();
-    } catch (error) {
-      console.log("Error galería:", error);
-    }
   };
 
   /* ============NUEVOOO========= */
@@ -254,11 +167,6 @@ export default function DetallesPrevio({ navigation }) {
     if (!infoNoSubidas.exists) {
       await FileSystem.makeDirectoryAsync(noSubidas, { intermediates: true });
     }
-  };
-
-  const normalizarUri = (path) => {
-    if (path.startsWith("file://")) return path;
-    return `file://${path}`;
   };
 
   const mostrarImagenes = async () => {
@@ -291,134 +199,9 @@ export default function DetallesPrevio({ navigation }) {
   };
 
   /* ===================== */
-  const subirFotos = async () => {
-    try {
-      setSubirImagenes(true);
-      if (imagenes_no_subidas.length === 0) {
-        alert("No se encontraron archivos.");
-        return false;
-      }
-      const digi = await api_procesarArchivosDigitalizacion(
-        sk_previo,
-        imagenes_no_subidas,
-        {
-          s_clave_expediente: "PREVIO",
-          s_clave_documento: "PREVIO",
-          i_thumbnail: 1,
-          i_imagenes_pdf: 0,
-        },
-      );
-
-      if (digi?.data) {
-        const documentos = [];
-        for (let img of digi.data) {
-          documentos.push(img.sk_documento_digitalizacion);
-          await FileSystem.moveAsync({
-            from: `${FileSystem.documentDirectory}${sk_previo}/imagenes_no_subidas/${img.s_nombre_original}`,
-            to: `${FileSystem.documentDirectory}${sk_previo}/imagenes_subidas/${img.s_nombre_original}`,
-          });
-        }
-        const res_guardar = await Util_apiServices(
-          "/api/agen/traf/prev-foto/api-previos/app_guardar",
-          "POST",
-          {
-            documentos,
-            sk_previo,
-            s_nuevo_modelo: null,
-            s_estado_mercancia: null,
-            sk_previo_modelo: null,
-          },
-        );
-        console.log(res_guardar);
-      }
-      mostrarImagenes();
-      setSubirImagenes(false);
-    } catch (error) {
-      setSubirImagenes(false);
-      console.log("error:,", error);
-    }
-  };
-
-  /* ===================== */
-  const api_procesarArchivosDigitalizacion = async (
-    sk_codigo,
-    files,
-    datos,
-  ) => {
-    try {
-      const formFile = new FormData();
-      const sYear = new Date().getFullYear();
-      const sMes = new Date().getMonth() + 1;
-      formFile.append("s_clave_expediente", datos.s_clave_expediente);
-      formFile.append("s_clave_documento", datos.s_clave_documento);
-      formFile.append("sk_codigo", sk_codigo);
-      formFile.append("i_thumbnail", datos.i_thumbnail);
-      formFile.append("i_imagenes_pdf", datos.i_imagenes_pdf);
-      formFile.append("sYear", sYear);
-      formFile.append("sMes", sMes);
-      formFile.append(
-        "location",
-        `expedientes/${datos.s_clave_expediente}/${sYear}/${sMes}/${sk_codigo}/`,
-      );
-
-      let i = 0;
-      for (const file of files) {
-        const filename = file.uri.split("/").pop();
-        const fileType = file.uri.split(".").pop();
-
-        formFile.append("files", {
-          uri: file.uri,
-          name: filename,
-          type: `image/${fileType}`,
-        });
-      }
-
-      const rutas = await Util_apiForm("/api/digitalizacion", "POST", formFile);
-      return await rutas.json();
-    } catch (error) {}
-  };
-
-  /* ===================== */
-  const eliminarFoto = async (img) => {
-    try {
-      if (!img?.uri) return;
-
-      // quitar file:// para legacy FS
-      const ruta = img.uri.replace("file://", "");
-
-      const info = await FileSystem.getInfoAsync(ruta);
-      if (!info.exists) {
-        console.log("Archivo no existe:", ruta);
-        return;
-      }
-
-      await FileSystem.deleteAsync(ruta, { idempotent: true });
-
-      setModalVisible(false);
-      setUriImg(null);
-      mostrarImagenes();
-    } catch (error) {
-      console.log("Error al eliminar foto:", error);
-    }
-  };
-
-  /* ===================== */
   useFocusEffect(
     useCallback(() => {
-      set_loading_cargar_datos(true);
-      Util_apiServices(
-        "/api/agen/traf/prev-apli/api-previos/obtenerPrevio",
-        "POST",
-        { sk_previo },
-      ).then((res) => {
-        setPrevio(res.data);
-        let contenedores = res.data.contenedores.map((contendor) => ({
-          label: contendor.s_numero_contenedor,
-          value: contendor.s_numero_contenedor,
-        }));
-        setContenedores(contenedores);
-        set_loading_cargar_datos(false);
-      });
+      obtenerDatos();
     }, []),
   );
 
@@ -428,6 +211,33 @@ export default function DetallesPrevio({ navigation }) {
     const tabActual = routes[index].key;
     set_texto_tab(tabActual);
   }, [index]);
+
+  const obtenerDatos = async () => {
+    set_loading_cargar_datos(true);
+
+    let response = await Util_apiServices(
+      "/api/agen/traf/prev-apli/api-previos/obtenerPrevio",
+      "POST",
+      { sk_previo },
+    );
+
+    let modelos = response?.data?.modelos.map((value, index) => ({
+      label: value.s_modelo,
+      value: value.sk_previo_modelo,
+    }));
+
+    let contenedores = response.data.contenedores.map((contendor) => ({
+      label: contendor.s_numero_contenedor,
+      value: contendor.sk_previo_contenedor,
+    }));
+
+    response.data.select_modelos = modelos;
+    response.data.select_contenedores = contenedores;
+
+    setPrevio(response.data);
+    setContenedores(contenedores);
+    set_loading_cargar_datos(false);
+  };
 
   const finalizarPrevio = async () => {
     alert("asdasdj");
@@ -454,9 +264,9 @@ export default function DetallesPrevio({ navigation }) {
               <Image
                 source={
                   imagenes_no_subidas?.[0]
-                    ? imagenes_no_subidas[0]
-                    : imagenes_subidas?.[0]
-                      ? imagenes_subidas?.[0]
+                    ? imagenes_no_subidas[imagenes_no_subidas.length]
+                    : imagenes_subidas?.[imagenes_subidas.length - 1]
+                      ? imagenes_subidas?.[imagenes_subidas.length - 1]
                       : ""
                 }
                 style={{ borderRadius: 5, width: "100%", height: "100%" }}
@@ -468,7 +278,7 @@ export default function DetallesPrevio({ navigation }) {
 
           <ScrollView
             style={{
-              paddingHorizontal: 15,
+              paddingHorizontal: 10,
               marginBottom: 15,
               marginTop: -50,
               height: sk_estatus_reconocedor === "FI" ? "100%" : "85%",
@@ -576,6 +386,7 @@ export default function DetallesPrevio({ navigation }) {
                   onPress={() => {
                     //mostrarImagenes();
                     //drawerFotografia.current?.expand();
+                    setFlotante(false);
                     navigation.navigate("Fotografias", {
                       previo_data: previo,
                       sk_previo: sk_previo,

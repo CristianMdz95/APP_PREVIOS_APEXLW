@@ -135,7 +135,7 @@ function StackUsuario({ color }) {
               },
               headerTintColor: "white",
               headerTitleAlign: "center",
-              headerTitle: "Fotografias",
+              headerTitle: "Subir Fotografías",
             }}
           />
           {/* PRUEBA */}
