@@ -63,6 +63,10 @@ export default function Fotografias({ navigation }) {
   const [menu, setMenu] = useState(false);
   const [flotante, setFlotante] = useState(false);
 
+  /* DIALOG DE GUARDAR */
+  const [showSubirFotografias, set_showSubirFotografias] = useState(false);
+  const [loadingGuardar, setLoadingGuardar] = useState(false);
+
   const [estado_mercancia, set_estado_mercancia] = useState("sin_dano");
   const [nuevo_parte, set_nuevo_parte] = useState(false);
 
@@ -143,6 +147,7 @@ export default function Fotografias({ navigation }) {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ["images"],
         quality: 0.7,
+        cameraType: ImagePicker.CameraType.back,
       });
 
       if (result.canceled) return;
@@ -256,6 +261,29 @@ export default function Fotografias({ navigation }) {
   /* ===================== */
   const subirFotos = async () => {
     try {
+      if (estado_mercancia === "con_dano") {
+        showMessage({
+          duration: 5000,
+          position: "top",
+          message: "Notificación",
+          description: "Es necesario seleccionar el Tipo de Daño",
+          type: "danger",
+        });
+        return false;
+      }
+
+      if (!selectTipoFoto?.value || !selectParte?.value) {
+        showMessage({
+          duration: 5000,
+          position: "top",
+          message: "Notificación",
+          description:
+            "Los datos de Tipo de Foto y Número de parte son requeridos",
+          type: "danger",
+        });
+        return false;
+      }
+
       set_loading_subiendo_fotos(true);
       setSubirImagenes(true);
       if (imagenes_no_subidas.length === 0) {
@@ -303,6 +331,7 @@ export default function Fotografias({ navigation }) {
 
         /* Notificación de subida correctamente */
         showMessage({
+          duration: 5000,
           message: "Notificación",
           description: "Las fotografías se subieron correctamente.",
           type: "success",
@@ -714,9 +743,7 @@ export default function Fotografias({ navigation }) {
           </Dialog.Content>
 
           <Dialog.Actions>
-            {permisoEliminarFoto && (
-              <Button onPress={() => eliminarFoto(uriImg)}>Eliminar</Button>
-            )}
+            <Button onPress={() => eliminarFoto(uriImg)}>Eliminar</Button>
             <Button onPress={() => setModalVisible(false)}>Cerrar</Button>
           </Dialog.Actions>
         </Dialog>
@@ -774,7 +801,8 @@ export default function Fotografias({ navigation }) {
                     setMenu(false);
                     return false;
                   } else {
-                    subirFotos();
+                    set_showSubirFotografias(true);
+                    //subirFotos();
                     setMenu(true);
                   }
                 },
@@ -790,6 +818,40 @@ export default function Fotografias({ navigation }) {
           />
         </Portal>
       )}
+
+      <Portal>
+        <Dialog
+          visible={showSubirFotografias}
+          onDismiss={() => set_showSubirFotografias(false)}
+        >
+          <Dialog.Title>Notificación</Dialog.Title>
+          <Dialog.Content>
+            <Text>¿Estás seguro de subir las imagenes al Previo?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => set_showSubirFotografias(false)}>
+              Cancelar
+            </Button>
+
+            <Button
+              disabled={loadingGuardar}
+              onPress={async () => {
+                try {
+                  setLoadingGuardar(true);
+                  set_showSubirFotografias(false);
+                  await subirFotos(); // tu función real
+                } catch (error) {
+                  console.log(error);
+                } finally {
+                  setLoadingGuardar(false);
+                }
+              }}
+            >
+              Sí, Subir
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </>
   );
 }

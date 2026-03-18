@@ -1,6 +1,12 @@
 import React, { useState, useCallback } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { TextInput, Button, Checkbox } from "react-native-paper";
+import {
+  TextInput,
+  Button,
+  Checkbox,
+  Icon,
+  IconButton,
+} from "react-native-paper";
 import { Util_apiServices } from "../utils/Util_apiServices";
 import { CommonActions, useFocusEffect } from "@react-navigation/native";
 import useStorage from "../utils/Util_localStorage";
@@ -8,10 +14,11 @@ import { showMessage } from "react-native-flash-message";
 import colorPrimary from "../data/ColorPrimary";
 
 export default function Login({ navigation }) {
-  const [usuario, set_usuario] = useState("cmendoza");
-  const [password, set_password] = useState("Chilaquiles$25"); //Chilaquiles$25
+  const [usuario, set_usuario] = useState("");
+  const [password, set_password] = useState(""); //Chilaquiles$25
 
   const [cargandoInicio, set_cargandoInicio] = useState(false);
+  const [verPassword, set_verPassword] = useState(true);
   const [checked, setChecked] = React.useState(false);
   const [loading, set_loading] = React.useState(false);
 
@@ -26,9 +33,10 @@ export default function Login({ navigation }) {
   const respaldarCredenciales = async () => {
     await Remove("usuario");
     const credenciales = await Get("credenciales");
-    if (credenciales) {
-      set_usuario(JSON.parse(credenciales)?.usuario);
-      set_password(JSON.parse(credenciales)?.password);
+
+    if (JSON.parse(credenciales)?.s_usuario_correo) {
+      set_usuario(JSON.parse(credenciales)?.s_usuario_correo);
+      set_password(JSON.parse(credenciales)?.s_password);
       setChecked(true);
     }
   };
@@ -36,6 +44,7 @@ export default function Login({ navigation }) {
   const iniciar_sesion = async () => {
     //set_cargandoInicio(true)
     set_loading(true);
+
     const result = await Util_apiServices(
       "/api/core/prin/inic-sesi/iniciar-sesion/iniciarSesion",
       "POST",
@@ -46,9 +55,18 @@ export default function Login({ navigation }) {
     );
 
     if (!result || !result?.success) {
+      set_loading(false);
       alert(result?.message);
       //set_cargandoInicio(false)
       return false;
+    }
+
+    /* Si el checked de recordar esta TRUE, se guardan las cosas */
+    if (checked) {
+      await Set("credenciales", {
+        s_usuario_correo: usuario,
+        s_password: password,
+      });
     }
 
     navigation.navigate("Empresas", {
@@ -120,14 +138,41 @@ export default function Login({ navigation }) {
                   </Text>
                 </View>
 
-                <View style={{ width: "100%", alignItems: "center" }}>
-                  <TextInput
-                    placeholder="Contraseña"
-                    onChangeText={(text) => set_password(text)}
-                    secureTextEntry={true}
-                    style={{ width: "95%" }}
-                    value={password}
-                  />
+                <View style={{ marginHorizontal: 10 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                    }}
+                  >
+                    <TextInput
+                      placeholder="Contraseña"
+                      onChangeText={(text) => set_password(text)}
+                      secureTextEntry={verPassword}
+                      style={{ flex: 1, borderTopRightRadius: 0 }}
+                      value={password}
+                    />
+                    <View
+                      style={{
+                        backgroundColor: "white",
+                        height: "100%",
+                        borderColor: "white",
+                        flexDirection: "row",
+                        alignItems: "center",
+                      }}
+                    >
+                      <View>
+                        <IconButton
+                          icon={verPassword ? "eye" : "eye-off"}
+                          color={"gray"}
+                          size={20}
+                          onPress={() => {
+                            set_verPassword((prev) => !prev);
+                          }}
+                        />
+                      </View>
+                    </View>
+                  </View>
                 </View>
 
                 <View
@@ -165,7 +210,7 @@ export default function Login({ navigation }) {
                   </Button>
 
                   <View style={{ paddingTop: 7 }}>
-                    <Text style={{ color: "white", fontSize: 12 }}> V1.0</Text>
+                    <Text style={{ color: "white", fontSize: 12 }}> V1.0 </Text>
                   </View>
                 </View>
               </View>

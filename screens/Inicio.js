@@ -53,7 +53,7 @@ export default function Inicio({ navigation }) {
     }, []),
   );
 
-  const salirAdministrador = async () => {
+  const cerrarSesion = async () => {
     await Remove("usuario");
     await Util_validarStorage({ navigation });
   };
@@ -246,7 +246,7 @@ export default function Inicio({ navigation }) {
                 icon: "logout",
                 color: "red",
                 onPress: () => {
-                  salirAdministrador();
+                  cerrarSesion();
                 },
               },
             ]}

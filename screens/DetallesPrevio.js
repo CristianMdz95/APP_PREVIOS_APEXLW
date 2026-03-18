@@ -63,6 +63,10 @@ export default function DetallesPrevio({ navigation }) {
   const [uriImg, setUriImg] = useState(null);
   const [permisoEliminarFoto, setPermisoEliminarFoto] = useState(false);
 
+  /* DIALOG DE GUARDAR */
+  const [showConfirmGuardar, setShowConfirmGuardar] = useState(false);
+  const [loadingGuardar, setLoadingGuardar] = useState(false);
+
   const basePath = `${FileSystem.documentDirectory}${sk_previo}`;
 
   const layout = useWindowDimensions();
@@ -240,7 +244,7 @@ export default function DetallesPrevio({ navigation }) {
   };
 
   const finalizarPrevio = async () => {
-    alert("asdasdj");
+    alert("PROXIMAMENTE");
   };
 
   return (
@@ -716,7 +720,7 @@ export default function DetallesPrevio({ navigation }) {
                 label: "Finalizar Previos",
                 labelTextColor: "#827C7C",
                 onPress: () => {
-                  finalizarPrevio();
+                  setShowConfirmGuardar(true);
                 },
               },
             ]}
@@ -730,6 +734,42 @@ export default function DetallesPrevio({ navigation }) {
           />
         </Portal>
       )}
+
+      <Portal>
+        <Dialog
+          visible={showConfirmGuardar}
+          onDismiss={() => setShowConfirmGuardar(false)}
+        >
+          <Dialog.Title>Notificación</Dialog.Title>
+          <Dialog.Content>
+            <Text>¿Estás seguro de finalizar este Previo?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowConfirmGuardar(false)}>
+              Cancelar
+            </Button>
+
+            <Button
+              disabled={loadingGuardar}
+              onPress={async () => {
+                try {
+                  setLoadingGuardar(true);
+
+                  await finalizarPrevio(); // tu función real
+
+                  setShowConfirmGuardar(false);
+                } catch (error) {
+                  console.log(error);
+                } finally {
+                  setLoadingGuardar(false);
+                }
+              }}
+            >
+              Sí, Finalizar
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </>
   );
 }
